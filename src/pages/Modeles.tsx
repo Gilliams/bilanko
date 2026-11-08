@@ -14,6 +14,11 @@ const TYPE_LABEL: Record<FieldType, string> = {
   eva: 'EVA',
   bodychart: 'schéma',
   score: 'score',
+  test: 'test',
+  criteres: 'critères',
+  bilateral: 'gauche/droite',
+  calcul: 'calcul',
+  activites: 'activités',
 };
 
 export function Modeles() {

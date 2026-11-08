@@ -1,14 +1,69 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BILAN_TYPES, formatAge, formatDate, store, useDB } from '../lib/store';
+import { formatAge, formatDate, imc, nomBilan, store, useDB } from '../lib/store';
 import { SPECIALITES, getTemplate } from '../data/templates';
 import { templateDuBilan } from '../data/catalogue';
 import { genererSynthese } from '../lib/synthese';
 import { Modal } from '../components/Modal';
 import { PatientForm } from '../components/PatientForm';
 import { NewBilanModal } from '../components/NewBilanModal';
-import { SeancesCard, SuiviCard } from '../components/Suivi';
+import { MemoCard, SeancesCard, SuiviCard } from '../components/Suivi';
 import { SchemasEvolution } from '../components/SchemasEvolution';
+import { GalerieCard } from '../components/Medias';
+import { BilanActions } from '../components/BilanActions';
+import type { Bilan, Patient } from '../types';
+
+const LATERALITE = { droitier: 'Droitier', gaucher: 'Gaucher', ambidextre: 'Ambidextre' } as const;
+const TABAC = { non: 'Non', oui: 'Oui', sevre: 'Sevré' } as const;
+
+/** Rubriques du dossier : seules les informations renseignées s'affichent. */
+const DOSSIER: { titre: string; lignes: [string, (p: Patient) => string | undefined][] }[] = [
+  {
+    titre: 'Informations personnelles',
+    lignes: [
+      ['Situation familiale', (p) => p.situationFamiliale],
+      ['Loisirs et activités', (p) => p.loisirs],
+      ['Latéralité', (p) => p.lateralite && LATERALITE[p.lateralite]],
+    ],
+  },
+  {
+    titre: 'Santé',
+    lignes: [
+      ['Antécédents', (p) => p.antecedents],
+      ['Pathologies associées', (p) => p.pathologies],
+      ['Antécédents familiaux', (p) => p.antecedentsFamiliaux],
+      ['Médicaments', (p) => p.medicaments],
+      ['Tabac', (p) => p.tabac && TABAC[p.tabac]],
+      [
+        'Taille et poids',
+        (p) => {
+          const i = imc(p);
+          const morceaux = [p.taille ? `${p.taille} cm` : '', p.poids ? `${p.poids.toLocaleString('fr-FR')} kg` : '', i !== null ? `IMC ${i.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}` : ''];
+          return morceaux.filter(Boolean).join(' · ') || undefined;
+        },
+      ],
+    ],
+  },
+  {
+    titre: 'Coordonnées',
+    lignes: [
+      ['Téléphone', (p) => p.telephone],
+      ['E-mail', (p) => p.email],
+      ['Adresse', (p) => p.adresse],
+      ['Médecin traitant', (p) => p.medecinTraitant],
+    ],
+  },
+  {
+    titre: 'Prescription',
+    lignes: [
+      ['Médecin prescripteur', (p) => p.medecinPrescripteur],
+      ['Date', (p) => p.datePrescription && formatDate(p.datePrescription)],
+      ['Séances prescrites', (p) => (p.seancesPrescrites ? String(p.seancesPrescrites) : undefined)],
+      ['Motif', (p) => p.motifPrescription],
+    ],
+  },
+  { titre: 'Notes', lignes: [['Notes', (p) => p.notes]] },
+];
 
 export function PatientDetail() {
   const { id } = useParams();
@@ -16,6 +71,7 @@ export function PatientDetail() {
   const nav = useNavigate();
   const [editing, setEditing] = useState(false);
   const [newBilan, setNewBilan] = useState(false);
+  const [actions, setActions] = useState<Bilan | null>(null);
   const p = db.patients.find((x) => x.id === id);
 
   if (!p) {
@@ -60,22 +116,24 @@ export function PatientDetail() {
       <div className="grid-detail">
         <section className="card">
           <h2>Dossier</h2>
-          <dl className="dl">
-            <dt>Médecin prescripteur</dt>
-            <dd>{p.medecinPrescripteur || '—'}</dd>
-            <dt>Téléphone</dt>
-            <dd>{p.telephone || '—'}</dd>
-            <dt>E-mail</dt>
-            <dd>{p.email || '—'}</dd>
-            <dt>Antécédents</dt>
-            <dd className="pre">{p.antecedents || '—'}</dd>
-            {p.notes && (
-              <>
-                <dt>Notes</dt>
-                <dd className="pre">{p.notes}</dd>
-              </>
-            )}
-          </dl>
+          {DOSSIER.every(({ lignes }) => lignes.every(([, lire]) => !lire(p))) && <p className="muted">Aucune information complémentaire. Cliquez sur Modifier pour compléter le dossier.</p>}
+          {DOSSIER.map(({ titre, lignes }) => {
+            const remplies = lignes.map(([label, lire]) => [label, lire(p)] as const).filter(([, v]) => v);
+            if (!remplies.length) return null;
+            return (
+              <div key={titre} className="dossier-bloc">
+                <h3>{titre}</h3>
+                <dl className="dl">
+                  {remplies.map(([label, v]) => (
+                    <div key={label} className="dl-ligne">
+                      <dt>{label}</dt>
+                      <dd className="pre">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            );
+          })}
           <button
             className="btn btn-danger-ghost"
             onClick={() => {
@@ -110,7 +168,7 @@ export function PatientDetail() {
                     <div className="tl-card">
                       <div className="tl-head">
                         <div>
-                          <strong>{BILAN_TYPES[b.type]}</strong>
+                          <strong>{nomBilan(b)}</strong>
                           <small>{t.nom}</small>
                         </div>
                         <span className={`badge ${b.statut === 'finalise' ? 'is-done' : 'is-draft'}`}>{b.statut === 'finalise' ? 'Finalisé' : 'Brouillon'}</span>
@@ -130,6 +188,9 @@ export function PatientDetail() {
                         <Link className="btn btn-small btn-ghost" to={`/bilans/${b.id}/apercu`}>
                           Compte rendu
                         </Link>
+                        <button type="button" className="btn btn-small btn-ghost" onClick={() => setActions(b)}>
+                          Autres actions
+                        </button>
                       </div>
                     </div>
                   </li>
@@ -141,11 +202,16 @@ export function PatientDetail() {
       </div>
 
       <div className="grid-suivi">
-        <SuiviCard patientId={p.id} />
+        <div className="pile">
+          <MemoCard patientId={p.id} />
+          <SuiviCard patientId={p.id} />
+        </div>
         <SeancesCard patientId={p.id} />
       </div>
 
       <SchemasEvolution patientId={p.id} />
+
+      <GalerieCard patientId={p.id} />
 
       {editing && (
         <Modal title="Modifier le patient" onClose={() => setEditing(false)}>
@@ -160,6 +226,7 @@ export function PatientDetail() {
         </Modal>
       )}
       {newBilan && <NewBilanModal patientId={p.id} onClose={() => setNewBilan(false)} />}
+      {actions && <BilanActions bilan={actions} modeleNom={getTemplate(actions.templateId)?.nom ?? ''} onClose={() => setActions(null)} />}
     </div>
   );
 }

@@ -12,7 +12,7 @@ const anamnese: SectionDef = {
     { id: 'motif', label: 'Motif de consultation', type: 'textarea', placeholder: 'Plainte principale du patient' },
     { id: 'histoire', label: 'Histoire de la maladie', type: 'textarea', placeholder: 'Début, circonstances, évolution' },
     { id: 'traitements', label: 'Traitements en cours', type: 'textarea' },
-    { id: 'imagerie', label: 'Examens complémentaires / imagerie', type: 'textarea' },
+    { id: 'imagerie', label: 'Examens complémentaires / imagerie', type: 'textarea', medias: true, help: 'Photographiez les comptes rendus ou les clichés.' },
     { id: 'attentes', label: 'Attentes du patient', type: 'textarea' },
   ],
 };
@@ -168,13 +168,44 @@ const mskLombalgie: BilanTemplate = {
         { id: 'lasegue', label: 'Lasègue', type: 'select', options: ['Négatif', 'Positif à droite', 'Positif à gauche', 'Positif bilatéral'] },
         { id: 'lasegue_angle', label: 'Angle de Lasègue', type: 'number', unit: '°', min: 0, max: 90, visibleIf: { field: 'lasegue', in: ['Positif à droite', 'Positif à gauche', 'Positif bilatéral'] } },
         { id: 'slump', label: 'Slump test', type: 'select', options: ['Négatif', 'Positif'] },
+        { id: 'instabilite_procubitus', label: 'Test d’instabilité en procubitus', type: 'test' },
+        {
+          id: 'radiculopathie',
+          label: 'Arguments pour une radiculopathie',
+          type: 'criteres',
+          options: [
+            'Douleur descendant sous le genou selon un trajet radiculaire',
+            'Lasègue reproduisant la douleur du membre inférieur',
+            'Lasègue croisé positif',
+            'Trouble sensitif dans un dermatome',
+            'Déficit moteur ou réflexe dans le territoire d’une racine',
+          ],
+          seuil: 3,
+          seuilLabel: 'radiculopathie probable',
+          help: 'Seuil indicatif, à confronter à l’ensemble du bilan.',
+        },
+        { id: 'examen_neuro', label: 'Examen neurologique', type: 'test', options: ['Non nécessaire', 'Réalisé, normal', 'Réalisé, anormal'] },
+      ],
+    },
+    {
+      id: 'endurance',
+      title: 'Endurance musculaire',
+      fields: [
         { id: 'sorensen', label: 'Test de Sorensen', type: 'number', unit: 's', min: 0, max: 300, help: 'Endurance des extenseurs du tronc' },
+        { id: 'shirado', label: 'Test de Shirado-Ito', type: 'number', unit: 's', min: 0, max: 600, help: 'Endurance des fléchisseurs du tronc' },
+        { id: 'ratio_endurance', label: 'Ratio fléchisseurs / extenseurs', type: 'calcul', formule: 'shirado / sorensen', decimales: 2, help: 'Calculé à partir de Shirado-Ito et Sorensen.' },
+        { id: 'chaise', label: 'Test de la chaise', type: 'number', unit: 's', min: 0, max: 600, help: 'Dos au mur, cuisses à l’horizontale, temps tenu.' },
       ],
     },
     {
       id: 'fonction',
       title: 'Retentissement fonctionnel',
       fields: [
+        { id: 'dn4', label: 'DN4 (résultat)', type: 'number', min: 0, max: 10, unit: '/10', format: '{v}/10', plages: [{ jusqua: 3, label: 'douleur neuropathique peu probable' }, { jusqua: 10, label: 'douleur neuropathique probable' }], help: 'Résultat du questionnaire officiel, rempli à part (questionnaire protégé, non reproduit ici).' },
+        { id: 'startback_total', label: 'STarT Back : score total', type: 'number', min: 0, max: 9, unit: '/9', format: '{v}/9', help: 'Score total du questionnaire officiel, rempli à part (non reproduit ici).' },
+        { id: 'startback_psy', label: 'STarT Back : sous-score psychosocial', type: 'number', min: 0, max: 5, unit: '/5', format: '{v}/5', help: 'Sous-score psychosocial du questionnaire officiel.' },
+        { id: 'startback_risque', label: 'STarT Back : catégorie de risque', type: 'calcul', formule: '1 + seuil(startback_total, 4) + seuil(startback_total, 4) * seuil(startback_psy, 4)', format: '', plages: [{ jusqua: 1, label: 'risque faible : conseils, réassurance, peu de séances' }, { jusqua: 2, label: 'risque moyen : rééducation classique' }, { jusqua: 3, label: 'risque élevé : rééducation intégrant la dimension psychologique' }], help: 'Calculé à partir du score total et du sous-score psychosocial.' },
+        { id: 'psfs', label: 'Échelle fonctionnelle spécifique (PSFS)', type: 'activites', reportLabel: 'PSFS', help: 'Le patient cite 3 à 5 activités difficiles et les cote de 0 (impossible) à 10 (comme avant).' },
         {
           id: 'oswestry',
           label: 'Oswestry Disability Index (simplifié)',

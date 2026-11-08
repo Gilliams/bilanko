@@ -1,4 +1,4 @@
-import { BILAN_TYPES, age, formatDate } from './store';
+import { BILAN_TYPES, age, formatDate, nomBilan } from './store';
 import { fondsUtilises, lireDessin } from './dessin';
 import { evolutions, genererSynthese, isFilled, isVisible } from './synthese';
 import { normaliser } from '../data/catalogue';
@@ -65,19 +65,25 @@ export function bilanPrecedent(bilans: Bilan[], bilan: Bilan): Bilan | undefined
   return bilans.filter((b) => b.patientId === bilan.patientId && b.templateId === bilan.templateId && b.date < bilan.date).sort((a, b) => b.date.localeCompare(a.date))[0];
 }
 
-export function compteRendu(bilan: Bilan, template: BilanTemplate, patient: Patient, cabinet: Cabinet, precedent?: Bilan): DocumentModele {
+/** Parties facultatives du compte rendu, en plus des champs (identifiés par leur id). */
+export const PARTIE_EVOLUTION = '__evolution';
+export const PARTIE_CONCLUSION = '__conclusion';
+
+export function compteRendu(bilan: Bilan, template: BilanTemplate, patient: Patient, cabinet: Cabinet, precedent?: Bilan, exclus: ReadonlySet<string> = new Set()): DocumentModele {
   const s = genererSynthese(bilan, template, patient);
   const blocs: Bloc[] = s.alertes.map((texte) => ({ t: 'alerte', texte }));
 
-  const evo = precedent ? evolutions(precedent, bilan, template) : [];
+  const evo = precedent && !exclus.has(PARTIE_EVOLUTION) ? evolutions(precedent, bilan, template) : [];
   if (precedent && evo.length) {
     blocs.push({ t: 'titre', texte: `Évolution depuis le bilan du ${formatDate(precedent.date)}` });
     blocs.push({ t: 'tableau', entetes: ['Mesure', 'Avant', 'Maintenant'], lignes: evo.map((e) => [e.label, e.avant, e.apres]) });
   }
 
   for (const section of s.sections) {
+    const lignes = section.lines.filter((l) => !exclus.has(l.fieldId));
+    if (!lignes.length) continue;
     blocs.push({ t: 'titre', texte: section.title });
-    for (const l of section.lines) {
+    for (const l of lignes) {
       blocs.push({ t: 'champ', label: l.label, valeur: l.value, long: l.long });
       const champ = template.sections.flatMap((x) => x.fields).find((f) => f.id === l.fieldId);
       if (champ?.type !== 'bodychart') continue;
@@ -88,7 +94,7 @@ export function compteRendu(bilan: Bilan, template: BilanTemplate, patient: Pati
     }
   }
 
-  if (bilan.conclusion?.trim()) {
+  if (bilan.conclusion?.trim() && !exclus.has(PARTIE_CONCLUSION)) {
     blocs.push({ t: 'titre', texte: 'Conclusion' });
     blocs.push({ t: 'texte', texte: bilan.conclusion.trim() });
   }
@@ -97,7 +103,7 @@ export function compteRendu(bilan: Bilan, template: BilanTemplate, patient: Pati
     fichier: nomFichier('compte-rendu', patient, bilan.date),
     titre: s.titre,
     sousTitres: s.entete,
-    rappel: `${identite(patient)} · ${BILAN_TYPES[bilan.type]} du ${formatDate(bilan.date)}`,
+    rappel: `${identite(patient)} · ${nomBilan(bilan)} du ${formatDate(bilan.date)}`,
     blocs,
     signataire: cabinet.praticien ?? '',
     cabinet,

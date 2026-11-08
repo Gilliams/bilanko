@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BILAN_TYPES, store, useDB } from '../lib/store';
+import { BILAN_TYPES, nomBilan, store, useDB } from '../lib/store';
 import { getTemplate } from '../data/templates';
 import { templateDuBilan } from '../data/catalogue';
 import { ItemPicker } from '../components/Items';
 import { Modal } from '../components/Modal';
-import { genererSynthese, isFilled, isVisible } from '../lib/synthese';
+import { genererSynthese, isFilled, isVisible, valeurCalculee } from '../lib/synthese';
 import { estSuivable, suiviKey } from '../lib/suivi';
 import { FieldInput } from '../components/FieldInput';
+import { MediasChamp } from '../components/Medias';
 import type { BilanType, FieldValue } from '../types';
 
 export function BilanEditor() {
@@ -48,7 +49,7 @@ export function BilanEditor() {
   const synthese = genererSynthese(bilan, template, patient);
   const sectionFilled = (sid: string) => {
     const s = template.sections.find((x) => x.id === sid)!;
-    const visibles = s.fields.filter((f) => isVisible(f, bilan.values));
+    const visibles = s.fields.filter((f) => f.type !== 'calcul' && isVisible(f, bilan.values));
     return visibles.length ? visibles.filter((f) => isFilled(bilan.values[f.id])).length / visibles.length : 0;
   };
   const section = template.sections.find((s) => s.id === active) ?? template.sections[0];
@@ -63,7 +64,7 @@ export function BilanEditor() {
         <div>
           <h1>{template.nom}</h1>
           <p className="muted">
-            {BILAN_TYPES[bilan.type]} · {bilan.statut === 'finalise' ? 'finalisé' : 'brouillon'} · enregistré automatiquement {savedAt && `à ${savedAt}`}
+            {nomBilan(bilan)} · {bilan.statut === 'finalise' ? 'finalisé' : 'brouillon'} · enregistré automatiquement {savedAt && `à ${savedAt}`}
           </p>
         </div>
         <div className="actions">
@@ -119,6 +120,10 @@ export function BilanEditor() {
             <>
               <h2>Informations</h2>
               <div className="form-grid">
+                <label className="span-2">
+                  Nom du bilan
+                  <input className="input" value={bilan.titre ?? ''} placeholder={BILAN_TYPES[bilan.type]} onChange={(e) => store.updateBilan(bilan.id, { titre: e.target.value || undefined })} />
+                </label>
                 <label>
                   Date du bilan
                   <input className="input" type="date" value={bilan.date} onChange={(e) => e.target.value && store.updateBilan(bilan.id, { date: e.target.value })} />
@@ -146,10 +151,15 @@ export function BilanEditor() {
                   <textarea className="input" rows={4} value={bilan.conclusion ?? ''} onChange={(e) => store.updateBilan(bilan.id, { conclusion: e.target.value })} />
                 </label>
               </div>
+              <div className="field">
+                <span className="field-label">Photos et vidéos du bilan</span>
+                <MediasChamp patientId={patient.id} bilanId={bilan.id} />
+                <p className="help">Stockées dans ce navigateur avec le reste des données. Retrouvez-les dans la galerie du patient.</p>
+              </div>
               <button
                 className="btn btn-danger-ghost"
                 onClick={() => {
-                  if (confirm('Supprimer définitivement ce bilan ?')) {
+                  if (confirm('Supprimer définitivement ce bilan et ses photos ?')) {
                     store.deleteBilan(bilan.id);
                     nav(`/patients/${patient.id}`);
                   }
@@ -172,6 +182,9 @@ export function BilanEditor() {
                       value={bilan.values[f.id]}
                       onChange={(v) => setValue(f.id, v)}
                       previous={previous?.values[f.id]}
+                      calcule={f.type === 'calcul' ? valeurCalculee(f, template, bilan.values) : undefined}
+                      complement={f.medias ? <MediasChamp patientId={patient.id} bilanId={bilan.id} fieldId={f.id} /> : undefined}
+                      memo={f.type !== 'calcul' && f.type !== 'bodychart' ? { actif: (db.memos[patient.id] ?? []).includes(key), onToggle: () => store.toggleMemo(patient.id, key) } : undefined}
                       suivi={estSuivable(f) ? { actif: (db.suivis[patient.id] ?? []).includes(key), onToggle: () => store.toggleSuivi(patient.id, key) } : undefined}
                     />
                   );

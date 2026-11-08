@@ -13,6 +13,8 @@ import {
   declencheursPossibles,
   deplacerChamp,
   deplacerSection,
+  erreurFormule,
+  estCalculable,
   majChamp,
   majSection,
   problemes,
@@ -32,17 +34,56 @@ interface Glisse {
 
 const libelleValeur = (v: string | boolean) => (v === true ? 'Oui' : v === false ? 'Non' : v);
 
+function ProprietesCalcul({
+  modele,
+  champ,
+  onChange,
+  texte,
+  nombre,
+}: {
+  modele: BilanTemplate;
+  champ: FieldDef;
+  onChange: (patch: Partial<FieldDef>) => void;
+  texte: (cle: 'formule' | 'unit', label: string) => React.ReactNode;
+  nombre: (cle: 'decimales', label: string) => React.ReactNode;
+}) {
+  const mesures = champs(modele).filter((f) => f.id !== champ.id && estCalculable(f));
+  const erreur = champ.formule?.trim() ? erreurFormule(modele, champ.formule) : null;
+  return (
+    <>
+      {texte('formule', 'Formule')}
+      <p className="help">Opérations + − * / et parenthèses, fonctions somme() et moyenne(). Cliquez une mesure pour l’insérer.</p>
+      {mesures.length ? (
+        <div className="chips">
+          {mesures.map((f) => (
+            <button key={f.id} type="button" className="chip is-small" title={f.id} onClick={() => onChange({ formule: `${champ.formule?.trim() ? `${champ.formule.trim()} ` : ''}${f.id}` })}>
+              + {f.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="help">Ajoutez d’abord des champs de type Mesure ou Échelle 0 à 10.</p>
+      )}
+      {erreur && <p className="alert">{erreur}</p>}
+      <div className="props-duo">
+        {texte('unit', 'Unité')}
+        {nombre('decimales', 'Décimales')}
+      </div>
+    </>
+  );
+}
+
 function Proprietes({ modele, champ, onChange }: { modele: BilanTemplate; champ: FieldDef; onChange: (patch: Partial<FieldDef>) => void }) {
   const declencheurs = declencheursPossibles(modele, champ.id);
   const condition = champ.visibleIf;
   const declencheur = condition && champs(modele).find((f) => f.id === condition.field);
-  const texte = (cle: 'label' | 'reportLabel' | 'help' | 'unit', label: string) => (
+  const texte = (cle: 'label' | 'reportLabel' | 'help' | 'unit' | 'seuilLabel' | 'alerte' | 'formule', label: string) => (
     <label>
       {label}
       <input className="input" value={champ[cle] ?? ''} onChange={(e) => onChange({ [cle]: e.target.value || (cle === 'label' ? '' : undefined) })} />
     </label>
   );
-  const nombre = (cle: 'min' | 'max', label: string) => (
+  const nombre = (cle: 'min' | 'max' | 'seuil' | 'decimales', label: string) => (
     <label>
       {label}
       <input className="input" type="number" value={champ[cle] ?? ''} onChange={(e) => onChange({ [cle]: e.target.value === '' ? undefined : Number(e.target.value) })} />
@@ -54,7 +95,7 @@ function Proprietes({ modele, champ, onChange }: { modele: BilanTemplate; champ:
       {texte('label', 'Libellé')}
       {texte('reportLabel', 'Libellé de compte rendu')}
       {texte('help', 'Aide à la saisie')}
-      {champ.type === 'number' && (
+      {(champ.type === 'number' || champ.type === 'bilateral') && (
         <>
           {texte('unit', 'Unité')}
           <div className="props-duo">
@@ -63,12 +104,32 @@ function Proprietes({ modele, champ, onChange }: { modele: BilanTemplate; champ:
           </div>
         </>
       )}
-      {(champ.type === 'select' || champ.type === 'multiselect') && (
+      {(champ.type === 'select' || champ.type === 'multiselect' || champ.type === 'criteres' || champ.type === 'test' || champ.type === 'text' || champ.type === 'textarea') && (
         <label>
-          Options, une par ligne
+          {champ.type === 'criteres'
+            ? 'Critères, un par ligne'
+            : champ.type === 'test'
+              ? 'Résultats possibles, un par ligne (vide : Négatif / Positif)'
+              : champ.type === 'text' || champ.type === 'textarea'
+                ? 'Suggestions à cliquer, une par ligne (facultatif)'
+                : 'Options, une par ligne'}
           <textarea className="input" rows={4} value={(champ.options ?? []).join('\n')} onChange={(e) => onChange({ options: e.target.value.split('\n') })} onBlur={(e) => onChange({ options: e.target.value.split('\n').map((o) => o.trim()).filter(Boolean) })} />
         </label>
       )}
+      {champ.type === 'criteres' && (
+        <>
+          <div className="props-duo">
+            {nombre('seuil', 'Seuil (critères présents)')}
+            {texte('seuilLabel', 'Conclusion au seuil')}
+          </div>
+          {texte('alerte', 'Alerte du compte rendu au seuil (facultatif)')}
+        </>
+      )}
+      {champ.type === 'calcul' && <ProprietesCalcul modele={modele} champ={champ} onChange={onChange} texte={texte} nombre={nombre} />}
+      <label className="props-check">
+        <input type="checkbox" checked={champ.medias === true} onChange={(e) => onChange({ medias: e.target.checked || undefined })} />
+        Photos et vidéos
+      </label>
       <label className="props-check">
         <input type="checkbox" checked={champ.inSynthese !== false} onChange={(e) => onChange({ inSynthese: e.target.checked ? undefined : false })} />
         Inclure dans le compte rendu

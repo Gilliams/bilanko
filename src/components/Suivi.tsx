@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatDate, store, useDB } from '../lib/store';
-import { estMesurableEnSeance, itemsSuivis, type ItemSuivi, type PointSuivi } from '../lib/suivi';
+import { estMesurableEnSeance, itemsSuivis, memoPatient, type ItemSuivi, type PointSuivi } from '../lib/suivi';
 import { formatValue } from '../lib/synthese';
 import { Modal } from './Modal';
 import { Dictee, dicteeDisponible } from './Dictee';
@@ -21,6 +21,34 @@ function Courbe({ points }: { points: PointSuivi[] }) {
 }
 
 const afficher = (item: ItemSuivi, p: PointSuivi) => (item.field.type === 'score' ? String(p.valeur) : formatValue(item.field, p.valeur));
+
+export function MemoCard({ patientId }: { patientId: string }) {
+  const db = useDB();
+  const lignes = memoPatient(db, patientId);
+  return (
+    <section className="card memo-card">
+      <h2>Mémo</h2>
+      {lignes.length === 0 ? (
+        <p className="muted">Dans un bilan, cliquez sur « Mémo » à côté d’une information pour la garder sous les yeux ici (motif, côté atteint, objectifs…).</p>
+      ) : (
+        <dl className="memo-liste">
+          {lignes.map((l) => (
+            <div key={l.key} className="memo-ligne">
+              <dt>
+                {l.label}
+                <button type="button" className="memo-retirer" title="Retirer du mémo" onClick={() => store.toggleMemo(patientId, l.key)}>
+                  ✕<span className="sr-only"> Retirer {l.label} du mémo</span>
+                </button>
+              </dt>
+              <dd className="pre">{l.valeur || <span className="muted">Non renseigné</span>}</dd>
+              {l.date && <small>Bilan du {formatDate(l.date)}</small>}
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}
 
 export function SuiviCard({ patientId }: { patientId: string }) {
   const db = useDB();

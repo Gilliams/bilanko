@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { FONDS, getFond, type Fond } from '../data/fonds';
 import { SENSATIONS, cheminTrait, fondsUtilises, getSensation, lireDessin, resumerDessin, simplifier, styleTrait, toucheTrait } from '../lib/dessin';
 import type { Dessin, FieldValue, OutilTrait, Trait } from '../types';
@@ -112,6 +112,29 @@ export function BodyChart({ value, onChange, previous }: Props) {
   const [voirPrecedent, setVoirPrecedent] = useState(true);
   const [enCours, setEnCours] = useState<Trait | null>(null);
   const [efface, setEfface] = useState<Set<string>>(new Set());
+  const [pleinEcran, setPleinEcran] = useState(false);
+  const racine = useRef<HTMLDivElement>(null);
+
+  // Plein écran pour tendre la tablette au patient : API Fullscreen si possible, sinon calque fixe.
+  useEffect(() => {
+    if (!pleinEcran) return;
+    const el = racine.current;
+    if (el?.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => undefined);
+    const quitter = () => {
+      if (!document.fullscreenElement) setPleinEcran(false);
+    };
+    const echap = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && setPleinEcran(false);
+    const debordement = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('fullscreenchange', quitter);
+    document.addEventListener('keydown', echap);
+    return () => {
+      document.body.style.overflow = debordement;
+      document.removeEventListener('fullscreenchange', quitter);
+      document.removeEventListener('keydown', echap);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => undefined);
+    };
+  }, [pleinEcran]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const pointeur = useRef<number | null>(null);
@@ -224,8 +247,9 @@ export function BodyChart({ value, onChange, previous }: Props) {
   const aide = outil === 'gomme' ? 'Passez sur un tracé pour l’effacer.' : outil === 'zone' ? 'Entourez une région pour la remplir.' : 'Dessinez librement, ou touchez un point précis.';
 
   return (
-    <div className="bc" onKeyDown={raccourcis}>
-      <div className="bc-fonds" role="tablist" aria-label="Fond du schéma">
+    <div ref={racine} className={`bc ${pleinEcran ? 'is-plein-ecran' : ''}`} onKeyDown={raccourcis}>
+      <div className="bc-barre">
+        <div className="bc-fonds" role="tablist" aria-label="Fond du schéma">
         {FONDS.map((f) => {
           const n = dessin.traits.filter((t) => t.fond === f.id).length;
           return (
@@ -235,6 +259,10 @@ export function BodyChart({ value, onChange, previous }: Props) {
             </button>
           );
         })}
+        </div>
+        <button type="button" className={`btn btn-small ${pleinEcran ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setPleinEcran(!pleinEcran)}>
+          {pleinEcran ? 'Terminer' : 'Plein écran'}
+        </button>
       </div>
 
       <div className="bc-plan">

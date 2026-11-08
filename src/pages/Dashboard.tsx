@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BILAN_TYPES, formatDate, store, useDB } from '../lib/store';
+import { formatDate, nomBilan, store, useDB } from '../lib/store';
 import { getTemplate } from '../data/templates';
 import { demoDB } from '../data/demo';
 
@@ -67,7 +67,7 @@ export function Dashboard() {
                             {patient(b.patientId)?.prenom} {patient(b.patientId)?.nom}
                           </strong>
                           <small>
-                            {getTemplate(b.templateId)?.nom} · {BILAN_TYPES[b.type]}
+                            {getTemplate(b.templateId)?.nom} · {nomBilan(b)}
                           </small>
                         </span>
                         <span className="badge is-draft">Brouillon</span>

@@ -1,7 +1,7 @@
 import { getItem } from '../data/catalogue';
 import { getTemplate } from '../data/templates';
 import type { DB } from './store';
-import { isFilled, isVisible, scoreTotal } from './synthese';
+import { formatValue, isFilled, isVisible, scoreTotal } from './synthese';
 import type { FieldDef } from '../types';
 
 export interface PointSuivi {
@@ -25,12 +25,32 @@ export const estSuivable = (f: FieldDef) => f.type === 'number' || f.type === 'e
 /** Une mesure peut être saisie en séance pour les valeurs simples, pas pour un questionnaire. */
 export const estMesurableEnSeance = (f: FieldDef) => f.type === 'number' || f.type === 'eva';
 
-function trouverChamp(key: string): FieldDef | undefined {
+export function trouverChamp(key: string): FieldDef | undefined {
   const [templateId, fieldId] = key.split('/');
   const duModele = getTemplate(templateId)
     ?.sections.flatMap((s) => s.fields)
     .find((f) => f.id === fieldId);
   return duModele ?? (fieldId.startsWith('cat_') ? getItem(fieldId.slice(4))?.field : undefined);
+}
+
+export interface LigneMemo {
+  key: string;
+  label: string;
+  valeur: string;
+  date: string;
+}
+
+/** Informations épinglées du patient : dernière valeur renseignée dans ses bilans. */
+export function memoPatient(db: DB, patientId: string): LigneMemo[] {
+  return (db.memos[patientId] ?? []).flatMap((key) => {
+    const field = trouverChamp(key);
+    if (!field) return [];
+    const [templateId] = key.split('/');
+    const dernier = db.bilans
+      .filter((b) => b.patientId === patientId && b.templateId === templateId && isVisible(field, b.values) && isFilled(b.values[field.id]))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))[0];
+    return [{ key, label: field.reportLabel ?? field.label, valeur: dernier ? formatValue(field, dernier.values[field.id]) : '', date: dernier?.date ?? '' }];
+  });
 }
 
 /** Items suivis d'un patient, avec leurs valeurs issues des bilans et des séances, par date croissante. */

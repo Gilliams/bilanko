@@ -1,4 +1,5 @@
 import type { BilanTemplate, FieldDef, FieldType, SectionDef } from '../types';
+import { evaluer } from './formule';
 
 /** Opérations d'édition d'un modèle : fonctions pures, testées indépendamment de l'interface. */
 
@@ -11,7 +12,27 @@ export const TYPES_CREABLES: { type: FieldType; label: string }[] = [
   { type: 'boolean', label: 'Oui / non' },
   { type: 'eva', label: 'Échelle 0 à 10' },
   { type: 'bodychart', label: 'Schéma corporel' },
+  { type: 'test', label: 'Test positif / négatif' },
+  { type: 'criteres', label: 'Liste de critères' },
+  { type: 'bilateral', label: 'Mesure gauche / droite' },
+  { type: 'calcul', label: 'Calcul' },
+  { type: 'activites', label: 'Activités cotées 0 à 10' },
 ];
+
+/** Champs dont la valeur peut entrer dans une formule de calcul. */
+export const estCalculable = (f: FieldDef) => f.type === 'number' || f.type === 'eva';
+
+/** Message d'erreur d'une formule, ou null si elle est utilisable. */
+export function erreurFormule(t: BilanTemplate, formule: string): string | null {
+  if (!formule.trim()) return 'La formule est vide.';
+  const contexte = Object.fromEntries(champs(t).filter(estCalculable).map((f) => [f.id, 1]));
+  try {
+    evaluer(formule, contexte);
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : 'Formule invalide.';
+  }
+}
 
 const nouvelId = (prefixe: string) => `${prefixe}_${globalThis.crypto.randomUUID().slice(0, 8)}`;
 
@@ -36,6 +57,8 @@ export function creerChamp(type: FieldType, label?: string): FieldDef {
   const defaut = TYPES_CREABLES.find((x) => x.type === type)?.label ?? 'Champ';
   const champ: FieldDef = { id: nouvelId('champ'), label: label ?? defaut, type };
   if (type === 'select' || type === 'multiselect') champ.options = ['Option 1', 'Option 2'];
+  if (type === 'criteres') champ.options = ['Critère 1', 'Critère 2', 'Critère 3'];
+  if (type === 'calcul') champ.formule = '';
   return champ;
 }
 
@@ -151,7 +174,11 @@ export function problemes(t: BilanTemplate): string[] {
     if (!s.title.trim()) liste.push('Une section n’a pas de titre.');
     s.fields.forEach((f) => {
       if (!f.label.trim()) liste.push(`Un champ de « ${s.title} » n’a pas de libellé.`);
-      if ((f.type === 'select' || f.type === 'multiselect') && !f.options?.length) liste.push(`« ${f.label} » n’a aucune option.`);
+      if ((f.type === 'select' || f.type === 'multiselect' || f.type === 'criteres') && !f.options?.length) liste.push(`« ${f.label} » n’a aucune option.`);
+      if (f.type === 'calcul') {
+        const erreur = erreurFormule(t, f.formule ?? '');
+        if (erreur) liste.push(`« ${f.label} » : ${erreur}`);
+      }
     });
   });
   return liste;

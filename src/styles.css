@@ -360,3 +360,107 @@ textarea.input { resize: vertical; }
 .dictee-erreur { color: var(--danger); }
 @keyframes dictee { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .dictee-point { animation: none; } }
+
+/* Actions sur un bilan */
+.actions-bilan { display: flex; flex-direction: column; gap: 0.6rem; }
+.action-bilan { text-align: left; font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 0.65rem; padding: 0.75rem 0.9rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.2rem; }
+.action-bilan:hover { border-color: var(--primary); }
+.action-bilan.is-danger strong { color: var(--danger); }
+.action-bilan.is-danger:hover { border-color: var(--danger); }
+
+/* Choix du contenu exporté */
+.choix-contenu { border: 1px solid var(--border); border-radius: 0.65rem; padding: 0.6rem 0.8rem; }
+.choix-contenu summary { cursor: pointer; font-weight: 600; }
+.choix-contenu summary .muted { font-weight: 400; margin-left: 0.4rem; }
+.choix-actions { display: flex; gap: 0.4rem; margin: 0.6rem 0 0.2rem; }
+.choix-partie { border: 0; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.25rem; }
+.choix-partie legend { font-weight: 600; padding: 0; margin-bottom: 0.2rem; }
+.choix-partie > label { padding-left: 1.5rem; }
+.choix-contenu label.props-check { display: flex; flex-direction: row; align-items: center; gap: 0.45rem; font-weight: 400; cursor: pointer; }
+.choix-partie legend label.props-check { font-weight: 600; }
+
+/* Nouveaux types de champs */
+.suggestions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+.chip.is-small { font-size: 0.78rem; padding: 0.2rem 0.6rem; color: var(--muted); }
+.chip.is-small:hover { color: var(--primary); }
+.test-champ { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.test-champ .input { flex: 1 1 14rem; }
+.criteres { display: grid; gap: 0.35rem; }
+.critere { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.35rem 0; border-bottom: 1px dashed var(--border); }
+.critere span { flex: 1; min-width: 0; }
+.criteres-bilan { margin: 0.3rem 0 0; font-size: 0.86rem; color: var(--muted); }
+.criteres-bilan.is-atteint { color: var(--warn); font-weight: 600; }
+.bilateral { display: flex; flex-wrap: wrap; gap: 1rem; }
+.bilateral-cote { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.86rem; color: var(--muted); }
+.calcul { margin: 0.2rem 0 0; font-size: 1.05rem; }
+.activites { display: grid; gap: 0.45rem; }
+.activite { display: grid; grid-template-columns: minmax(0, 1fr) 7rem auto; gap: 0.5rem; align-items: center; }
+.activite .with-unit { max-width: none; }
+.activites-pied { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+@media (max-width: 560px) { .activite { grid-template-columns: minmax(0, 1fr) 6rem auto; } }
+
+/* Fiche patient : sections et dictée */
+.patient-form { min-width: min(40rem, 82vw); }
+.form-bloc { border: 1px solid var(--border); border-radius: 0.65rem; padding: 0.55rem 0.8rem; }
+.form-bloc summary { cursor: pointer; font-weight: 600; }
+.form-bloc summary .muted { font-weight: 400; }
+.form-bloc[open] summary { margin-bottom: 0.7rem; }
+.field-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.dictee-fiche { border: 1px dashed var(--primary); background: var(--primary-50); border-radius: 0.65rem; padding: 0.7rem 0.9rem; display: grid; gap: 0.45rem; }
+.dictee-fiche-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.dictee-fiche-tete .help { margin: 0.2rem 0 0; }
+.dictee-fiche-resultat { display: grid; gap: 0.35rem; justify-items: start; }
+.dictee-champs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.dictee-champs li { font-size: 0.82rem; border-radius: 2rem; padding: 0.2rem 0.65rem; background: var(--surface); border: 1px solid var(--border); }
+.dictee-champs li.is-ok { border-color: var(--success); color: var(--success); }
+.dictee-champs li.is-ko { border-color: var(--warn); color: var(--warn); }
+.dictee-aide summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); }
+@media (max-width: 640px) { .dictee-fiche-tete { flex-direction: column; } }
+.dossier-bloc h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 1rem 0 0; }
+.dossier-bloc:first-of-type h3 { margin-top: 0.4rem; }
+
+/* Mémo du patient */
+.memo-toggle { font: inherit; font-size: 0.72rem; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 2rem; padding: 0.1rem 0.5rem; cursor: pointer; }
+.memo-toggle:hover { border-color: var(--primary); color: var(--primary); }
+.memo-toggle.is-on { background: var(--primary-50); border-color: var(--primary); color: var(--primary); }
+.pile { display: grid; gap: 1.25rem; align-content: start; }
+.memo-liste { margin: 0; display: grid; gap: 0.7rem; }
+.memo-ligne dt { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.78rem; color: var(--muted); }
+.memo-ligne dd { margin: 0.1rem 0 0; }
+.memo-retirer { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 0 0.2rem; }
+.memo-retirer:hover { color: var(--danger); }
+
+/* Choix du modèle */
+.template-filtres { display: grid; gap: 0.6rem; margin-top: 0.9rem; }
+.template-groupe { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 1rem 0 0; }
+.template-groupe + .template-picker { margin-top: 0.5rem; }
+div.template-option { cursor: default; }
+.template-option-tete { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.template-option-choix { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem; border-radius: 0.4rem; }
+.template-option-choix:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.lien-discret { background: none; border: 0; padding: 0; font: inherit; font-size: 0.78rem; color: var(--primary); cursor: pointer; text-align: left; }
+.template-apercu { margin: 0; padding-left: 1rem; font-size: 0.78rem; color: var(--muted); display: grid; gap: 0.25rem; }
+
+/* Schéma en plein écran */
+.bc-barre { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; }
+.bc-barre .bc-fonds { flex: 1; min-width: 0; }
+.bc.is-plein-ecran { position: fixed; inset: 0; z-index: 1000; background: var(--bg); padding: 1rem 1.25rem; overflow: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+.bc.is-plein-ecran .bc-plan { flex: 1; grid-template-columns: minmax(0, 1fr) 16rem; }
+.bc.is-plein-ecran .bc-toile { max-height: calc(100vh - 8rem); margin: 0 auto; }
+@media (max-width: 860px) { .bc.is-plein-ecran .bc-plan { grid-template-columns: 1fr; } .bc.is-plein-ecran .bc-toile { max-height: 62vh; } }
+
+/* Photos et vidéos */
+.medias { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.media-vignette { position: relative; width: 4.5rem; height: 4.5rem; padding: 0; border: 1px solid var(--border); border-radius: 0.5rem; overflow: hidden; background: var(--bg); cursor: pointer; }
+.media-vignette:hover { border-color: var(--primary); }
+.media-vignette img, .media-vignette video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-badge { position: absolute; left: 0.25rem; bottom: 0.25rem; font-size: 0.65rem; background: rgb(0 0 0 / 0.6); color: #fff; border-radius: 0.3rem; padding: 0 0.3rem; }
+.visionneuse { display: grid; gap: 0.75rem; min-width: min(40rem, 82vw); }
+.visionneuse img, .visionneuse video { max-width: 100%; max-height: 65vh; justify-self: center; border-radius: 0.5rem; background: #000; }
+.galerie { margin-top: 1.25rem; }
+.galerie-groupe h3 { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 1rem 0 0.5rem; }
+.galerie-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: 0.75rem; }
+.galerie-grille figure { margin: 0; display: grid; gap: 0.3rem; }
+.galerie-grille .media-vignette { width: 100%; height: auto; aspect-ratio: 1; }
+.galerie-grille figcaption { font-size: 0.78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media print { .galerie, .medias { display: none; } }

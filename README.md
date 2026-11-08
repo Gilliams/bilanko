@@ -34,6 +34,14 @@ du navigateur ; le bouton « Charger la démo » du tableau de bord crée 4 pati
 - **Éditeur de modèles** : créer un modèle ou personnaliser une copie, avec sections, champs, glisser-déposer, items de la bibliothèque et conditions d'affichage.
 - **Schéma corporel dessiné** : 6 fonds originaux, une couleur et un motif par sensation, zones et traits, intensité, gomme, annulation, comparaison au bilan précédent et localisation automatique dans le compte rendu.
 - **Documents** : page Mon cabinet (coordonnées, logo, signature, couleur), compte rendu et courrier au prescripteur en PDF et Word, envoi par le partage du système ou par le client de messagerie.
+- **Actions sur un bilan** : depuis la ligne de temps, le renommer, changer sa date, le supprimer ou créer un intermédiaire ou un final à partir de lui ; à l'export, cocher les items à inclure dans le PDF ou le Word.
+- **Nouveaux types de champs** : test Positif/Négatif avec observation, liste de critères Oui/Non avec seuil (et alerte), mesure gauche/droite avec écart, calcul par formule (ex. ratio Shirado-Ito / Sorensen), activités cotées 0 à 10 (PSFS), suggestions cliquables dans les textes libres. Le bilan lombaire et la bibliothèque en profitent (instabilité en procubitus, arguments de radiculopathie, examen neurologique, endurance, heel rise, drapeaux rouges, hygiène de vie, santé de la femme).
+- **Fiche patient complète** : informations personnelles (situation familiale, loisirs, latéralité), santé (antécédents, pathologies, antécédents familiaux, médicaments, tabac, taille, poids, IMC), coordonnées, prescription. **Dictée par champs** : « Nom deux points Dupont point Prénom deux points Claire point… » remplit les champs nommés (dates, taille, téléphone et e-mail convertis).
+- **DN4 et STarT Back en résultat seul** : questionnaires protégés non reproduits ; on reporte le score, l'interprétation (DN4 ≥ 4) et la catégorie de risque STarT Back sont calculées.
+- **Mémo** : le bouton « Mémo » d'un champ épingle sa dernière valeur sur la fiche patient.
+- **Choix du modèle** : recherche sans accents, filtre par spécialité, modèles favoris en tête, aperçu du contenu.
+- **Schéma en plein écran** : pour tendre la tablette au patient (Échap ou « Terminer » pour sortir).
+- **Photos et vidéos** : sur les champs prévus (imagerie, ou case « Photos et vidéos » dans l'éditeur de modèles) et pour tout le bilan ; stockées dans IndexedDB, galerie par bilan sur la fiche patient, légende, téléchargement, suppression.
 - **Dictée de séance (prototype)** : reconnaissance vocale du navigateur, ponctuation à la voix et correction de termes du métier. À réserver à des données fictives.
 - **Compte rendu généré en un clic** : seuls les champs renseignés apparaissent, avec un tableau
   d'évolution par rapport au bilan précédent, des alertes (drapeaux rouges, TUG, désaturation)

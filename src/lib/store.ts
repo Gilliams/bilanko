@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { estDessin } from './dessin';
+import { supprimerMedias } from './medias';
 import type { Bilan, BilanTemplate, BilanType, Cabinet, FieldValue, Patient, Seance } from '../types';
 
 /**
@@ -16,6 +17,10 @@ export interface DB {
   suivis: Record<string, string[]>;
   /** Items favoris de la bibliothèque */
   favoris: string[];
+  /** Informations épinglées dans le mémo de chaque patient (clés : voir suiviKey()) */
+  memos: Record<string, string[]>;
+  /** Modèles de bilan favoris */
+  modelesFavoris: string[];
   /** Modèles créés par l'utilisateur */
   modeles: BilanTemplate[];
   cabinet: Cabinet;
@@ -25,7 +30,7 @@ const KEY = 'bilanko:db';
 
 /** Un nouveau bilan reprend les valeurs, sauf les schémas : ils restent visibles en transparence. */
 const valeursReprises = (values: Record<string, FieldValue>) => Object.fromEntries(Object.entries(structuredClone(values)).filter(([, v]) => !estDessin(v)));
-const empty = (): DB => ({ version: 1, patients: [], bilans: [], seances: [], suivis: {}, favoris: [], modeles: [], cabinet: {} });
+const empty = (): DB => ({ version: 1, patients: [], bilans: [], seances: [], suivis: {}, favoris: [], memos: {}, modelesFavoris: [], modeles: [], cabinet: {} });
 
 export interface Storage {
   getItem(k: string): string | null;
@@ -77,13 +82,16 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       commit({ ...db, patients: db.patients.map((p) => (p.id === id ? { ...p, ...patch, id } : p)) });
     },
     deletePatient(id: string) {
+      void supprimerMedias({ patientId: id }).catch(() => undefined);
       const { [id]: _retire, ...suivis } = db.suivis;
+      const { [id]: _memo, ...memos } = db.memos;
       commit({
         ...db,
         patients: db.patients.filter((p) => p.id !== id),
         bilans: db.bilans.filter((b) => b.patientId !== id),
         seances: db.seances.filter((s) => s.patientId !== id),
         suivis,
+        memos,
       });
     },
 
@@ -95,6 +103,14 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       const previous = db.bilans
         .filter((b) => b.patientId === patientId && b.templateId === templateId)
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))[0];
+      return this.creerBilan(patientId, templateId, type, previous);
+    },
+    /** Crée un bilan qui reprend les valeurs d'un bilan choisi, par exemple l'initial pour un intermédiaire. */
+    dupliquerBilan(sourceId: string, type: BilanType): Bilan | undefined {
+      const source = db.bilans.find((b) => b.id === sourceId);
+      return source && this.creerBilan(source.patientId, source.templateId, type, source);
+    },
+    creerBilan(patientId: string, templateId: string, type: BilanType, previous?: Bilan): Bilan {
       const b: Bilan = {
         id: uid(),
         patientId,
@@ -119,6 +135,7 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       });
     },
     deleteBilan(id: string) {
+      void supprimerMedias({ bilanId: id }).catch(() => undefined);
       commit({ ...db, bilans: db.bilans.filter((b) => b.id !== id) });
     },
 
@@ -151,6 +168,18 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       const courant = bilan.itemsAjoutes ?? [];
       const itemsAjoutes = courant.includes(itemId) ? courant.filter((i) => i !== itemId) : [...courant, itemId];
       this.updateBilan(bilanId, { itemsAjoutes });
+    },
+
+    /** Épingle ou retire une information du mémo du patient. */
+    toggleMemo(patientId: string, key: string) {
+      const courant = db.memos[patientId] ?? [];
+      const memo = courant.includes(key) ? courant.filter((k) => k !== key) : [...courant, key];
+      commit({ ...db, memos: { ...db.memos, [patientId]: memo } });
+    },
+
+    toggleModeleFavori(modeleId: string) {
+      const modelesFavoris = db.modelesFavoris.includes(modeleId) ? db.modelesFavoris.filter((i) => i !== modeleId) : [...db.modelesFavoris, modeleId];
+      commit({ ...db, modelesFavoris });
     },
 
     /** Ajoute ou retire un item du suivi du patient. */
@@ -194,6 +223,11 @@ export function age(dateNaissance: string, at = new Date()): number {
   return a;
 }
 
+/** Indice de masse corporelle, ou null si la taille ou le poids manque. */
+export function imc(p: Pick<Patient, 'taille' | 'poids'>): number | null {
+  return p.taille && p.poids ? p.poids / (p.taille / 100) ** 2 : null;
+}
+
 export function formatAge(dateNaissance: string): string {
   const a = age(dateNaissance);
   if (a >= 2) return `${a} ans`;
@@ -216,3 +250,6 @@ export const BILAN_TYPES: Record<BilanType, string> = {
   intermediaire: 'Bilan intermédiaire',
   final: 'Bilan de fin de traitement',
 };
+
+/** Nom affiché d'un bilan : celui choisi par le praticien, sinon son type. */
+export const nomBilan = (b: Pick<Bilan, 'titre' | 'type'>) => b.titre?.trim() || BILAN_TYPES[b.type];

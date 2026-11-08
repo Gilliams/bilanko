@@ -90,5 +90,5 @@ export function demoDB(): DB {
     },
   ];
 
-  return { version: 1, patients, bilans, seances: [], suivis: {}, favoris: [], modeles: [], cabinet: {} };
+  return { version: 1, patients, bilans, seances: [], suivis: {}, favoris: [], memos: {}, modelesFavoris: [], modeles: [], cabinet: {} };
 }

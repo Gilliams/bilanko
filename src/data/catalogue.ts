@@ -7,8 +7,8 @@ import type { Bilan, BilanTemplate, FieldDef } from '../types';
  * Les questionnaires protégés par un droit d'auteur ne sont volontairement pas reproduits.
  */
 
-export type CategorieItem = 'test' | 'mesure' | 'score';
-export type RegionItem = 'rachis' | 'epaule' | 'membre-sup' | 'hanche' | 'genou' | 'cheville' | 'neuro' | 'cardio' | 'general';
+export type CategorieItem = 'anamnese' | 'test' | 'mesure' | 'score';
+export type RegionItem = 'rachis' | 'epaule' | 'membre-sup' | 'hanche' | 'genou' | 'cheville' | 'neuro' | 'cardio' | 'pelvien' | 'general';
 
 export interface CatalogueItem {
   id: string;
@@ -22,7 +22,7 @@ export interface CatalogueItem {
   field: FieldDef;
 }
 
-export const CATEGORIES: Record<CategorieItem, string> = { test: 'Test clinique', mesure: 'Mesure', score: 'Score et échelle' };
+export const CATEGORIES: Record<CategorieItem, string> = { anamnese: 'Anamnèse', test: 'Test clinique', mesure: 'Mesure', score: 'Score et échelle' };
 
 export const REGIONS: Record<RegionItem, string> = {
   rachis: 'Rachis',
@@ -33,6 +33,7 @@ export const REGIONS: Record<RegionItem, string> = {
   cheville: 'Cheville et pied',
   neuro: 'Neurologie et équilibre',
   cardio: 'Cardio-respiratoire',
+  pelvien: 'Pelvi-périnéal',
   general: 'Général',
 };
 
@@ -395,6 +396,212 @@ export const CATALOGUE: CatalogueItem[] = [
       resultats: [{ formule: 'total', plages: [{ jusqua: 1, label: 'peu probable' }, { jusqua: 9, label: 'probable, avis médical sans attendre' }] }],
     }),
   },
+
+  /* Rachis : tests, endurance et faisceaux d'arguments */
+  {
+    id: 'instabilite_procubitus',
+    nom: 'Test d’instabilité en procubitus',
+    categorie: 'test',
+    region: 'rachis',
+    objectif: 'Repérer une lombalgie susceptible de répondre à un travail de stabilisation.',
+    realisation: 'Tronc allongé sur la table, pieds au sol : pression postéro-antérieure sur l’étage douloureux. On répète la pression pieds décollés du sol, extenseurs du tronc contractés.',
+    interpretation: 'Positif si la douleur provoquée au repos diminue ou disparaît quand les muscles sont contractés.',
+    source: 'Décrit notamment par Hicks et coll. (2003).',
+    field: champ('instabilite_procubitus', 'Test d’instabilité en procubitus', { type: 'test' }),
+  },
+  {
+    id: 'radiculopathie',
+    nom: 'Arguments pour une radiculopathie lombaire',
+    categorie: 'test',
+    region: 'rachis',
+    objectif: 'Rassembler les signes cliniques en faveur d’une atteinte radiculaire.',
+    realisation: 'Répondre Oui ou Non à chaque critère à partir de l’interrogatoire et de l’examen.',
+    interpretation: 'Plus les critères présents sont nombreux, plus l’atteinte radiculaire est probable. Le seuil de 3 est indicatif et ne remplace pas un avis médical.',
+    source: 'Regroupement de signes cliniques classiques, rédigé pour l’exercice et non validé.',
+    field: champ('radiculopathie', 'Arguments pour une radiculopathie lombaire', {
+      type: 'criteres',
+      options: [
+        'Douleur descendant sous le genou selon un trajet radiculaire',
+        'Lasègue reproduisant la douleur du membre inférieur',
+        'Lasègue croisé positif',
+        'Trouble sensitif dans un dermatome',
+        'Déficit moteur ou réflexe dans le territoire d’une racine',
+      ],
+      seuil: 3,
+      seuilLabel: 'radiculopathie probable',
+    }),
+  },
+  {
+    id: 'examen_neuro',
+    nom: 'Examen neurologique',
+    categorie: 'test',
+    region: 'neuro',
+    objectif: 'Tracer la réalisation et le résultat de l’examen neurologique (sensibilité, force, réflexes).',
+    realisation: 'Choisir le statut puis noter les anomalies : territoire, côté, réflexes concernés.',
+    interpretation: 'Un déficit d’apparition récente ou qui s’aggrave impose un avis médical rapide.',
+    source: 'Item de traçabilité, sans référence.',
+    field: champ('examen_neuro', 'Examen neurologique', { type: 'test', options: ['Non nécessaire', 'Réalisé, normal', 'Réalisé, anormal'] }),
+  },
+  {
+    id: 'shirado',
+    nom: 'Test de Shirado-Ito',
+    categorie: 'mesure',
+    region: 'rachis',
+    objectif: 'Mesurer l’endurance des fléchisseurs du tronc.',
+    realisation: 'Décubitus dorsal, hanches et genoux à 90°, mollets sur un support, bras croisés : le patient décolle les omoplates et tient la position.',
+    interpretation: 'Le temps tenu se compare d’un bilan à l’autre et au test de Sorensen pour juger l’équilibre fléchisseurs / extenseurs.',
+    source: 'Ito et coll. (1996).',
+    field: champ('shirado', 'Test de Shirado-Ito', { type: 'number', unit: 's', min: 0, max: 600 }),
+  },
+  {
+    id: 'ratio_endurance',
+    nom: 'Ratio fléchisseurs / extenseurs du tronc',
+    categorie: 'mesure',
+    region: 'rachis',
+    objectif: 'Comparer l’endurance des fléchisseurs (Shirado-Ito) à celle des extenseurs (Sorensen).',
+    realisation: 'Calculé automatiquement quand Shirado-Ito et Sorensen sont renseignés dans le bilan.',
+    interpretation: 'Un ratio nettement supérieur à 1 signale des extenseurs moins endurants que les fléchisseurs.',
+    source: 'Calcul simple à partir des deux temps de maintien.',
+    field: champ('ratio_endurance', 'Ratio fléchisseurs / extenseurs', { type: 'calcul', formule: 'shirado / sorensen', decimales: 2, help: 'Shirado-Ito ÷ Sorensen' }),
+  },
+
+  /* Cheville */
+  {
+    id: 'heel_rise',
+    nom: 'Single leg heel rise test',
+    categorie: 'mesure',
+    region: 'cheville',
+    objectif: 'Évaluer l’endurance des fléchisseurs plantaires, de chaque côté.',
+    realisation: 'Debout sur un pied, doigts posés au mur, montées complètes sur la pointe à un rythme régulier, jusqu’à épuisement ou perte d’amplitude.',
+    interpretation: 'Le côté atteint se compare au côté sain : l’écart en pourcentage est calculé. Chez l’adulte sain, on observe souvent autour de 25 répétitions.',
+    source: 'Lunsford et Perry (1995).',
+    field: champ('heel_rise', 'Single leg heel rise test', { type: 'bilateral', unit: 'rép', min: 0, max: 100 }),
+  },
+
+  /* Fonction */
+  {
+    id: 'psfs',
+    nom: 'Échelle fonctionnelle spécifique au patient (PSFS)',
+    categorie: 'score',
+    region: 'general',
+    objectif: 'Suivre les activités qui comptent pour le patient et qu’il a du mal à réaliser.',
+    realisation: 'Le patient cite 3 à 5 activités difficiles à cause de son problème et cote chacune de 0 (impossible) à 10 (comme avant).',
+    interpretation: 'Le score est la moyenne des notes. Une hausse d’environ 2 points est souvent retenue comme cliniquement pertinente.',
+    source: 'Stratford et coll. (1995).',
+    field: champ('psfs', 'Échelle fonctionnelle spécifique (PSFS)', { type: 'activites', reportLabel: 'PSFS' }),
+  },
+
+  /* Anamnèse */
+  {
+    id: 'drapeaux_recherche',
+    nom: 'Drapeaux rouges : recherche systématique',
+    categorie: 'anamnese',
+    region: 'general',
+    objectif: 'Tracer la recherche des signes qui imposent une réorientation médicale, en notant aussi ceux qui sont absents.',
+    realisation: 'Répondre Oui ou Non à chaque signe. Un signe non questionné reste vide.',
+    interpretation: 'Un seul signe présent suffit à demander un avis médical. Le compte rendu affiche alors une alerte.',
+    source: 'Liste de signes d’alerte classiques, rédigée pour l’exercice.',
+    field: champ('drapeaux_recherche', 'Drapeaux rouges', {
+      type: 'criteres',
+      options: [
+        'Fièvre ou frissons',
+        'Perte de poids inexpliquée',
+        'Fatigue inhabituelle ou perte d’appétit',
+        'Antécédent de cancer',
+        'Douleur nocturne non soulagée par le repos ni la position',
+        'Troubles urinaires ou anaux, anesthésie du périnée',
+        'Déficit neurologique qui s’aggrave',
+        'Traumatisme important récent',
+        'Corticoïdes au long cours ou immunodépression',
+      ],
+      seuil: 1,
+      seuilLabel: 'avis médical à demander',
+      alerte: 'avis médical recommandé',
+    }),
+  },
+  ...(
+    [
+      ['hdv_sommeil', 'Sommeil', 'textarea', ['Sommeil réparateur', 'Difficultés d’endormissement', 'Réveils nocturnes liés à la douleur', 'Fatigue au réveil']],
+      ['hdv_activite', 'Activité physique', 'textarea', ['Sédentaire', 'Marche régulière', 'Sport en club', 'Sport intensif', 'Activité arrêtée à cause du problème']],
+      ['hdv_alimentation', 'Alimentation et hydratation', 'textarea', ['Alimentation équilibrée', 'Repas irréguliers', 'Hydratation insuffisante', 'Régime particulier']],
+      ['hdv_consommations', 'Alcool, tabac et autres consommations', 'textarea', ['Aucune', 'Tabac', 'Ancien fumeur', 'Alcool occasionnel', 'Alcool régulier', 'Autres substances']],
+      ['hdv_stress', 'Stress et anxiété perçus', 'eva', []],
+    ] as const
+  ).map(([id, nom, type, options]): CatalogueItem => ({
+    id,
+    nom,
+    categorie: 'anamnese',
+    region: 'general',
+    objectif: 'Situer l’hygiène de vie du patient, qui influence la douleur et la récupération.',
+    realisation: type === 'eva' ? 'Le patient situe son niveau de 0 (aucun) à 10 (maximal).' : 'Question ouverte : cliquez les réponses fréquentes et complétez librement.',
+    interpretation: 'À mettre en lien avec la plainte et les objectifs, sans valeur diagnostique isolée.',
+    source: 'Item d’anamnèse rédigé pour l’exercice.',
+    field: champ(id, nom, type === 'eva' ? { type } : { type, options: [...options] }),
+  })),
+  ...(
+    [
+      ['sf_menarche', 'Âge des premières règles', { type: 'number', unit: 'ans', min: 7, max: 20 }],
+      ['sf_cycle', 'Cycle et contexte hormonal', { type: 'textarea', options: ['Cycles réguliers', 'Cycles irréguliers', 'Contraception hormonale', 'Grossesse en cours', 'Post-partum', 'Ménopause', 'Traitement hormonal'] }],
+      ['sf_dysmenorrhee', 'Douleurs de règles', { type: 'eva' }],
+      ['sf_grossesses', 'Grossesses et accouchements', { type: 'textarea', options: ['Aucune grossesse', 'Accouchement voie basse', 'Césarienne', 'Instrumentation', 'Déchirure ou épisiotomie'] }],
+      ['sf_fuites', 'Fuites urinaires', { type: 'multiselect', options: ['Aucune', 'À l’effort (toux, sport)', 'Par urgence', 'Mixtes', 'Gaz ou selles'] }],
+    ] as const
+  ).map(([id, nom, reste]): CatalogueItem => ({
+    id,
+    nom,
+    categorie: 'anamnese',
+    region: 'pelvien',
+    objectif: 'Compléter l’anamnèse des patientes, notamment en rééducation pelvi-périnéale ou lombo-pelvienne.',
+    realisation: 'Question posée à la patiente, avec son accord, en expliquant pourquoi elle est utile.',
+    interpretation: 'Oriente l’examen et les objectifs. Un saignement ou une douleur inhabituels justifient un avis médical.',
+    source: 'Item d’anamnèse rédigé pour l’exercice.',
+    field: champ(id, nom, { ...reste, options: 'options' in reste ? [...reste.options] : undefined } as Omit<FieldDef, 'id' | 'label'>),
+  })),
+  /* Questionnaires protégés : seul le résultat est saisi, les questions ne sont pas reproduites */
+  {
+    id: 'dn4',
+    nom: 'DN4 (douleur neuropathique) — résultat',
+    categorie: 'score',
+    region: 'neuro',
+    objectif: 'Reporter le résultat du questionnaire DN4, qui repère une douleur d’origine neuropathique.',
+    realisation: 'Remplir le questionnaire officiel à part : 7 questions au patient et 3 items d’examen de la zone douloureuse. Reporter ici le score sur 10.',
+    interpretation: 'À partir de 4 sur 10, une douleur neuropathique est probable : en informer le médecin, la prise en charge diffère.',
+    source: 'Bouhassira et coll. (2005). DN4© 2005 Bouhassira D. Questionnaire distribué par Mapi Research Trust : licence nécessaire pour l’intégrer à un logiciel.',
+    field: champ('dn4', 'DN4 (résultat)', { type: 'number', min: 0, max: 10, unit: '/10', format: '{v}/10', plages: [{ jusqua: 3, label: 'douleur neuropathique peu probable' }, { jusqua: 10, label: 'douleur neuropathique probable' }], help: 'Résultat du questionnaire officiel, rempli à part (questionnaire protégé, non reproduit ici).' }),
+  },
+  {
+    id: 'startback_total',
+    nom: 'STarT Back — score total',
+    categorie: 'score',
+    region: 'rachis',
+    objectif: 'Reporter le score total du STarT Back, qui estime le risque qu’une lombalgie devienne chronique.',
+    realisation: 'Faire remplir le questionnaire officiel (9 questions) au patient, puis reporter le score total sur 9. Ajoutez aussi le sous-score psychosocial et la catégorie de risque.',
+    interpretation: 'Jusqu’à 3 : risque faible. À partir de 4, la catégorie dépend du sous-score psychosocial.',
+    source: 'Hill et coll. (2008), Keele University. Usage non commercial libre selon Keele ; questions non reproduites ici.',
+    field: champ('startback_total', 'STarT Back : score total', { type: 'number', min: 0, max: 9, unit: '/9', format: '{v}/9', help: 'Score total du questionnaire officiel, rempli à part (non reproduit ici).' }),
+  },
+  {
+    id: 'startback_psy',
+    nom: 'STarT Back — sous-score psychosocial',
+    categorie: 'score',
+    region: 'rachis',
+    objectif: 'Reporter le sous-score psychosocial du STarT Back (peur, anxiété, catastrophisme, moral, gêne).',
+    realisation: 'Reporter le sous-score sur 5 calculé sur le questionnaire officiel.',
+    interpretation: 'Avec un score total d’au moins 4, un sous-score de 4 ou 5 classe le patient à risque élevé.',
+    source: 'Hill et coll. (2008), Keele University.',
+    field: champ('startback_psy', 'STarT Back : sous-score psychosocial', { type: 'number', min: 0, max: 5, unit: '/5', format: '{v}/5', help: 'Sous-score psychosocial du questionnaire officiel.' }),
+  },
+  {
+    id: 'startback_risque',
+    nom: 'STarT Back — catégorie de risque',
+    categorie: 'score',
+    region: 'rachis',
+    objectif: 'Classer le patient en risque faible, moyen ou élevé et orienter la prise en charge.',
+    realisation: 'Calculée automatiquement quand le score total et le sous-score psychosocial sont renseignés.',
+    interpretation: 'Faible : conseils et réassurance. Moyen : rééducation classique. Élevé : rééducation qui intègre la dimension psychologique.',
+    source: 'Hill et coll. (2011), essai STarT Back (The Lancet).',
+    field: champ('startback_risque', 'STarT Back : catégorie de risque', { type: 'calcul', formule: '1 + seuil(startback_total, 4) + seuil(startback_total, 4) * seuil(startback_psy, 4)', format: '', plages: [{ jusqua: 1, label: 'risque faible : conseils, réassurance, peu de séances' }, { jusqua: 2, label: 'risque moyen : rééducation classique' }, { jusqua: 3, label: 'risque élevé : rééducation intégrant la dimension psychologique' }], help: 'Calculé à partir du score total et du sous-score psychosocial.' }),
+  },
 ];
 
 /** Sans accents ni casse, pour la recherche. */
@@ -433,6 +640,16 @@ const FICHES_DES_CHAMPS: Record<string, string> = {
   tug: 'tug',
   tm6_distance: 'tm6',
   borg: 'borg',
+  shirado: 'shirado',
+  ratio_endurance: 'ratio_endurance',
+  instabilite_procubitus: 'instabilite_procubitus',
+  radiculopathie: 'radiculopathie',
+  examen_neuro: 'examen_neuro',
+  psfs: 'psfs',
+  dn4: 'dn4',
+  startback_total: 'startback_total',
+  startback_psy: 'startback_psy',
+  startback_risque: 'startback_risque',
 };
 
 /** Modèle du bilan complété par une section contenant les items ajoutés. */

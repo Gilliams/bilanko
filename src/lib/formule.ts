@@ -2,7 +2,7 @@
  * Mini-langage de formules pour les scores déclaratifs.
  *
  * Grammaire : expression infixe avec + - * / et parenthèses, nombres, variables,
- * et fonctions somme(a, b, …) / moyenne(a, b, …).
+ * et fonctions somme(a, b, …) / moyenne(a, b, …) / seuil(x, s) qui vaut 1 si x ≥ s, sinon 0.
  *
  * Une variable sans valeur (question sans réponse) vaut null et rend le calcul
  * indisponible, sauf dans somme() et moyenne() qui l'ignorent. Ainsi moyenne()
@@ -60,6 +60,11 @@ export function evaluer(expression: string, contexte: Contexte): number | null {
       } while (estSymbole(','));
     }
     attendre(')');
+    if (nom === 'seuil') {
+      if (args.length !== 2) throw new Error(`seuil() attend 2 valeurs dans « ${expression} »`);
+      const [x, s] = args;
+      return x === null || s === null ? null : x >= s ? 1 : 0;
+    }
     const valeurs = args.filter((v): v is number => v !== null);
     if (nom === 'somme') return valeurs.reduce((s, v) => s + v, 0);
     if (nom === 'moyenne') return valeurs.length ? valeurs.reduce((s, v) => s + v, 0) / valeurs.length : null;

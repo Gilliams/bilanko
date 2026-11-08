@@ -12,8 +12,29 @@ export interface Patient {
   medecinPrescripteur?: string;
   antecedents?: string;
   notes?: string;
+  /* Informations personnelles */
+  loisirs?: string;
+  situationFamiliale?: string;
+  lateralite?: Lateralite;
+  /* Santé */
+  antecedentsFamiliaux?: string;
+  medicaments?: string;
+  pathologies?: string;
+  tabac?: Tabac;
+  taille?: number; // cm
+  poids?: number; // kg
+  /* Administratif */
+  adresse?: string;
+  medecinTraitant?: string;
+  /* Prescription */
+  datePrescription?: string; // ISO yyyy-mm-dd
+  seancesPrescrites?: number;
+  motifPrescription?: string;
   createdAt: string;
 }
+
+export type Lateralite = 'droitier' | 'gaucher' | 'ambidextre';
+export type Tabac = 'non' | 'oui' | 'sevre';
 
 export type Specialite =
   | 'musculo-squelettique'
@@ -31,7 +52,12 @@ export type FieldType =
   | 'boolean'
   | 'eva' // échelle visuelle analogique 0-10
   | 'bodychart'
-  | 'score'; // score calculé à partir d'items
+  | 'score' // score calculé à partir d'items
+  | 'test' // résultat (positif / négatif par défaut) et observation
+  | 'criteres' // liste de critères Oui / Non, avec un seuil éventuel
+  | 'bilateral' // mesure à gauche et à droite
+  | 'calcul' // valeur calculée à partir d'autres champs, non saisie
+  | 'activites'; // activités citées par le patient, cotées de 0 à 10
 
 export interface ScoreItem {
   id: string;
@@ -78,6 +104,32 @@ export interface FieldDef {
   reportLabel?: string;
   /** Inclure dans la synthèse générée (défaut : oui) */
   inSynthese?: boolean;
+  /** Permet d'ajouter des photos et vidéos à ce champ */
+  medias?: boolean;
+  /** Pour type 'criteres' : nombre de critères présents à partir duquel `seuilLabel` s'applique */
+  seuil?: number;
+  seuilLabel?: string;
+  /** Pour type 'criteres' : alerte du compte rendu quand le seuil est atteint */
+  alerte?: string;
+  /** Pour type 'calcul' : formule sur les identifiants des champs ou de leurs fiches */
+  formule?: string;
+  decimales?: number;
+  /** Pour 'number' et 'calcul' : gabarit d'affichage ({v} = valeur ; vide = seulement l'interprétation) */
+  format?: string;
+  /** Pour 'number' et 'calcul' : interprétation selon la valeur */
+  plages?: ScorePlage[];
+}
+
+/** Valeur d'un champ 'test'. */
+export interface TestValeur {
+  resultat: string | null;
+  observation?: string;
+}
+
+/** Ligne d'un champ 'activites'. */
+export interface Activite {
+  activite: string;
+  note: number | null;
 }
 
 export interface SectionDef {
@@ -124,13 +176,26 @@ export interface Dessin {
   traits: Trait[];
 }
 
-export type FieldValue = string | number | boolean | string[] | BodyMark[] | Dessin | Record<string, number> | null;
+export type FieldValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | BodyMark[]
+  | Dessin
+  | Record<string, number>
+  | Record<string, boolean>
+  | TestValeur
+  | Activite[]
+  | null;
 
 export interface Bilan {
   id: string;
   patientId: string;
   templateId: string;
   type: BilanType;
+  /** Nom choisi par le praticien, à la place du type */
+  titre?: string;
   statut: BilanStatut;
   date: string; // ISO yyyy-mm-dd
   prescription?: string;
