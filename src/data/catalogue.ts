@@ -1,4 +1,5 @@
 import type { Bilan, BilanTemplate, FieldDef } from '../types';
+import { EXTENSION } from './catalogue-extension';
 
 /**
  * Bibliothèque d'items : tests, mesures et scores ajoutables à un bilan.
@@ -65,7 +66,7 @@ const ouiNon = [
   { label: 'Oui', points: 1 },
 ];
 
-export const CATALOGUE: CatalogueItem[] = [
+const BASE: CatalogueItem[] = [
   /* Rachis */
   test('lasegue', 'rachis', {
     nom: 'Lasègue',
@@ -604,6 +605,9 @@ export const CATALOGUE: CatalogueItem[] = [
   },
 ];
 
+/** Bibliothèque complète : items de base et extension. */
+export const CATALOGUE: CatalogueItem[] = [...BASE, ...EXTENSION];
+
 /** Sans accents ni casse, pour la recherche. */
 export const normaliser = (s: string) =>
   s
@@ -664,6 +668,7 @@ export const estDansLeModele = (template: BilanTemplate, item: CatalogueItem) =>
 
 /** Fiche associée à un champ, qu'il vienne d'un modèle ou de la bibliothèque. */
 export function ficheDuChamp(field: FieldDef): CatalogueItem | undefined {
-  const id = field.id.startsWith('cat_') ? field.id.slice(4) : FICHES_DES_CHAMPS[field.id];
-  return id ? getItem(id) : undefined;
+  // Un champ de modèle peut aussi porter directement l'identifiant d'un item de la bibliothèque.
+  const id = field.id.startsWith('cat_') ? field.id.slice(4) : (FICHES_DES_CHAMPS[field.id] ?? field.id);
+  return getItem(id);
 }

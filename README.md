@@ -19,9 +19,9 @@ du navigateur ; le bouton « Charger la démo » du tableau de bord crée 4 pati
 
 - **Patients** : liste avec recherche (insensible aux accents), création, modification, suppression.
 - **Ligne de temps** par patient : tous les bilans, statut, complétude, alertes.
-- **6 modèles de bilans** préconçus par spécialité : lombalgie, épaule (musculo-squelettique),
-  BPCO (cardio-respiratoire), vertiges (vestibulaire), développement moteur (pédiatrie),
-  post-partum (périnéologie).
+- **16 modèles de bilans** préconçus : bilan de base, lombalgie, cervicalgie, épaule, coude-poignet-main,
+  hanche, genou, ligamentoplastie du LCA (retour au sport), cheville, BPCO, bronchiolite, vertiges,
+  développement moteur, post-partum, gériatrie (chutes), AVC. Construits à partir de la bibliothèque.
 - **Saisie guidée** par sections avec enregistrement automatique : EVA, goniométrie, testing,
   tests cliniques, **schéma corporel** à dessiner, **scores calculés** (Oswestry, DHI, mMRC).
 - **Le bilan se construit au fil de la rééducation** : un nouveau bilan sur le même modèle reprend
@@ -30,7 +30,7 @@ du navigateur ; le bouton « Charger la démo » du tableau de bord crée 4 pati
 - **Scores déclaratifs** : formule et plages d'interprétation décrites en données (`resultats`), évaluées par `lib/formule.ts`.
 - **Items suivis et fil de séances** : l'étoile d'une mesure la suit dans le temps, avec courbe sur la fiche patient ; chaque séance garde ses notes et ses mesures.
 - **Libellés de compte rendu** (`reportLabel`) distincts du libellé de saisie.
-- **Bibliothèque d'items** : tests, mesures et scores avec recherche, filtres, favoris et fiches, ajoutables à un bilan. Contenu d'exercice, non relu par un kinésithérapeute.
+- **Bibliothèque d'items** (178) : anamnèse, tests, mesures et scores avec recherche, filtres, favoris et fiches, ajoutables à un bilan. Contenu d'exercice, non relu par un kinésithérapeute.
 - **Éditeur de modèles** : créer un modèle ou personnaliser une copie, avec sections, champs, glisser-déposer, items de la bibliothèque et conditions d'affichage.
 - **Schéma corporel dessiné** : 6 fonds originaux, une couleur et un motif par sensation, zones et traits, intensité, gomme, annulation, comparaison au bilan précédent et localisation automatique dans le compte rendu.
 - **Documents** : page Mon cabinet (coordonnées, logo, signature, couleur), compte rendu et courrier au prescripteur en PDF et Word, envoi par le partage du système ou par le client de messagerie.

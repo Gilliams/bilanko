@@ -1,46 +1,13 @@
 import { store } from '../lib/store';
-import type { BilanTemplate, FieldDef, ScoreItem, SectionDef, Specialite } from '../types';
+import type { BilanTemplate, FieldDef, ScoreItem, Specialite } from '../types';
+import { anamnese, douleur, objectifs } from './sections';
+import { MODELES_PLUS } from './modeles-plus';
 
 /* ------------------------------------------------------------------ */
 /* Sections communes                                                   */
 /* ------------------------------------------------------------------ */
 
-const anamnese: SectionDef = {
-  id: 'anamnese',
-  title: 'Anamnèse',
-  fields: [
-    { id: 'motif', label: 'Motif de consultation', type: 'textarea', placeholder: 'Plainte principale du patient' },
-    { id: 'histoire', label: 'Histoire de la maladie', type: 'textarea', placeholder: 'Début, circonstances, évolution' },
-    { id: 'traitements', label: 'Traitements en cours', type: 'textarea' },
-    { id: 'imagerie', label: 'Examens complémentaires / imagerie', type: 'textarea', medias: true, help: 'Photographiez les comptes rendus ou les clichés.' },
-    { id: 'attentes', label: 'Attentes du patient', type: 'textarea' },
-  ],
-};
 
-const objectifs: SectionDef = {
-  id: 'objectifs',
-  title: 'Diagnostic kiné & objectifs',
-  fields: [
-    { id: 'diagnostic', label: 'Diagnostic kinésithérapique', type: 'textarea' },
-    { id: 'objectifs', label: 'Objectifs de rééducation', type: 'textarea', placeholder: 'Objectifs SMART, à court et moyen terme' },
-    {
-      id: 'moyens',
-      label: 'Moyens envisagés',
-      type: 'multiselect',
-      options: [
-        'Thérapie manuelle',
-        'Renforcement musculaire',
-        'Étirements',
-        'Travail proprioceptif',
-        'Réentraînement à l’effort',
-        'Drainage',
-        'Physiothérapie',
-        'Éducation thérapeutique',
-        'Auto-exercices à domicile',
-      ],
-    },
-  ],
-};
 
 /* ------------------------------------------------------------------ */
 /* Scores validés (versions simplifiées pour l'exercice)               */
@@ -101,21 +68,6 @@ const mrcItems: ScoreItem[] = [
 /* Modèles                                                             */
 /* ------------------------------------------------------------------ */
 
-const douleur: SectionDef = {
-  id: 'douleur',
-  title: 'Douleur',
-  fields: [
-    { id: 'eva_repos', label: 'EVA au repos', type: 'eva' },
-    { id: 'eva_mouvement', label: 'EVA au mouvement', type: 'eva' },
-    {
-      id: 'type_douleur',
-      label: 'Type de douleur',
-      type: 'multiselect',
-      options: ['Mécanique', 'Inflammatoire', 'Neuropathique', 'Nocturne', 'Irradiante'],
-    },
-    { id: 'schema', label: 'Schéma corporel', type: 'bodychart', help: 'Choisissez une sensation, puis dessinez sur le schéma.' },
-  ],
-};
 
 const mskLombalgie: BilanTemplate = {
   id: 'msk-lombalgie',
@@ -455,7 +407,7 @@ const perineo: BilanTemplate = {
   ],
 };
 
-export const TEMPLATES: BilanTemplate[] = [mskLombalgie, mskEpaule, cardioResp, vestibulaire, pediatrie, perineo];
+export const TEMPLATES: BilanTemplate[] = [mskLombalgie, mskEpaule, cardioResp, vestibulaire, pediatrie, perineo, ...MODELES_PLUS];
 
 export const SPECIALITES: Record<Specialite, { label: string; color: string }> = {
   'musculo-squelettique': { label: 'Musculo-squelettique', color: '#5b4bdb' },
@@ -463,6 +415,8 @@ export const SPECIALITES: Record<Specialite, { label: string; color: string }> =
   vestibulaire: { label: 'Vestibulaire', color: '#0b7285' },
   pediatrie: { label: 'Pédiatrie', color: '#e8590c' },
   perineologie: { label: 'Périnéologie', color: '#a61e4d' },
+  neurologie: { label: 'Neurologie', color: '#2b8a3e' },
+  geriatrie: { label: 'Gériatrie', color: '#5c7cfa' },
 };
 
 export function getTemplate(id: string): BilanTemplate | undefined {

@@ -41,7 +41,9 @@ export type Specialite =
   | 'cardio-respiratoire'
   | 'vestibulaire'
   | 'pediatrie'
-  | 'perineologie';
+  | 'perineologie'
+  | 'neurologie'
+  | 'geriatrie';
 
 export type FieldType =
   | 'text'

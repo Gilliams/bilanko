@@ -83,3 +83,32 @@ describe('items ajoutés à un bilan', () => {
     expect(s.get().favoris).toEqual([]);
   });
 });
+
+describe('bibliothèque et modèles étendus', () => {
+  it('chaque modèle est valide et sans identifiant de champ en double', async () => {
+    const { problemes } = await import('../lib/modeles');
+    expect(TEMPLATES.length).toBeGreaterThanOrEqual(16);
+    for (const t of TEMPLATES) {
+      const ids = t.sections.flatMap((s) => s.fields.map((f) => f.id));
+      expect(new Set(ids).size, t.id).toBe(ids.length);
+      expect(problemes(t), t.id).toEqual([]);
+    }
+    expect(new Set(TEMPLATES.map((t) => t.id)).size).toBe(TEMPLATES.length);
+  });
+
+  it('les plages d’interprétation sont rangées par ordre croissant', () => {
+    for (const i of CATALOGUE) {
+      const bornes = (i.field.plages ?? []).map((p) => p.jusqua);
+      expect(bornes, i.id).toEqual([...bornes].sort((a, b) => a - b));
+      if (i.field.plages?.length && i.field.max !== undefined) expect(bornes.at(-1), i.id).toBeGreaterThanOrEqual(i.field.max);
+    }
+  });
+
+  it('les champs repris de la bibliothèque gardent leur fiche', () => {
+    const genou = getTemplate('msk-genou')!;
+    const champs = genou.sections.flatMap((s) => s.fields);
+    expect(ficheDuChamp(champs.find((f) => f.id === 'lachman')!)?.id).toBe('lachman');
+    expect(ficheDuChamp(champs.find((f) => f.id === 'koos')!)?.nom).toContain('KOOS');
+    expect(CATALOGUE.length).toBeGreaterThan(150);
+  });
+});
