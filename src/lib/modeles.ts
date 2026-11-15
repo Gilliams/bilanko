@@ -17,6 +17,8 @@ export const TYPES_CREABLES: { type: FieldType; label: string }[] = [
   { type: 'bilateral', label: 'Mesure gauche / droite' },
   { type: 'calcul', label: 'Calcul' },
   { type: 'activites', label: 'Activités cotées 0 à 10' },
+  { type: 'dynamo', label: 'Dynamomètre (N, D/G)' },
+  { type: 'titre', label: 'Sous-titre' },
 ];
 
 /** Champs dont la valeur peut entrer dans une formule de calcul. */
@@ -59,7 +61,51 @@ export function creerChamp(type: FieldType, label?: string): FieldDef {
   if (type === 'select' || type === 'multiselect') champ.options = ['Option 1', 'Option 2'];
   if (type === 'criteres') champ.options = ['Critère 1', 'Critère 2', 'Critère 3'];
   if (type === 'calcul') champ.formule = '';
+  if (type === 'dynamo') champ.dynamo = { groupes: [{ id: 'groupe1', label: 'Groupe 1' }] };
   return champ;
+}
+
+/**
+ * Insère une copie d'une section de la bibliothèque. Les identifiants de champs sont
+ * gardés (fiches, suivi et reprise des valeurs restent communs aux modèles) sauf s'ils
+ * existent déjà dans le modèle : ils sont alors renommés, conditions comprises.
+ */
+export function insererSection(t: BilanTemplate, source: SectionDef, index = t.sections.length): { modele: BilanTemplate; sectionId: string } {
+  const pris = new Set(champs(t).map((f) => f.id));
+  const renommes = new Map<string, string>();
+  for (const f of source.fields) {
+    if (!pris.has(f.id)) continue;
+    let id = `${f.id}_2`;
+    for (let n = 3; pris.has(id); n++) id = `${f.id}_${n}`;
+    renommes.set(f.id, id);
+    pris.add(id);
+  }
+  const fields = structuredClone(source.fields).map((f) => ({
+    ...f,
+    id: renommes.get(f.id) ?? f.id,
+    ...(f.visibleIf ? { visibleIf: { ...f.visibleIf, field: renommes.get(f.visibleIf.field) ?? f.visibleIf.field } } : {}),
+  }));
+  const section: SectionDef = { id: nouvelId('section'), title: source.title, fields };
+  const sections = [...t.sections];
+  // Un modèle neuf contient une section vide : la section insérée la remplace.
+  const vide = sections.length === 1 && sections[0].fields.length === 0;
+  if (vide) sections.splice(0, 1, section);
+  else sections.splice(index, 0, section);
+  return { modele: { ...t, sections }, sectionId: section.id };
+}
+
+/** Copie d'une section pour la bibliothèque. Les conditions vers d'autres sections sont retirées. */
+export function sectionPourBibliotheque(s: SectionDef): SectionDef {
+  const ids = new Set(s.fields.map((f) => f.id));
+  return {
+    id: nouvelId('biblio'),
+    title: s.title,
+    fields: structuredClone(s.fields).map((f) => {
+      if (!f.visibleIf || ids.has(f.visibleIf.field)) return f;
+      const { visibleIf: _retire, ...reste } = f;
+      return reste;
+    }),
+  };
 }
 
 export function ajouterSection(t: BilanTemplate): { modele: BilanTemplate; sectionId: string } {
@@ -175,6 +221,7 @@ export function problemes(t: BilanTemplate): string[] {
     s.fields.forEach((f) => {
       if (!f.label.trim()) liste.push(`Un champ de « ${s.title} » n’a pas de libellé.`);
       if ((f.type === 'select' || f.type === 'multiselect' || f.type === 'criteres') && !f.options?.length) liste.push(`« ${f.label} » n’a aucune option.`);
+      if (f.type === 'dynamo' && !f.dynamo?.groupes.length) liste.push(`« ${f.label} » n’a aucun groupe musculaire.`);
       if (f.type === 'calcul') {
         const erreur = erreurFormule(t, f.formule ?? '');
         if (erreur) liste.push(`« ${f.label} » : ${erreur}`);

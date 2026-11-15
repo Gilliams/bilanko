@@ -464,3 +464,45 @@ div.template-option { cursor: default; }
 .galerie-grille .media-vignette { width: 100%; height: auto; aspect-ratio: 1; }
 .galerie-grille figcaption { font-size: 0.78rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media print { .galerie, .medias { display: none; } }
+
+/* Liste des patients : onglets, filtres, archivage */
+.onglets-patients { margin-bottom: 0.75rem; }
+.search-patients { flex: 1 1 16rem; max-width: 24rem; }
+.filtre-date { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.86rem; color: var(--muted); }
+.th-tri { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.th-tri:hover { color: var(--primary); }
+.cell-actions { text-align: right; width: 1%; white-space: nowrap; }
+.badge-archive { display: inline-block; margin-left: 0.5rem; padding: 0.05rem 0.5rem; font-size: 0.78rem; color: var(--warn); border: 1px solid currentColor; border-radius: 1rem; }
+
+/* Bilan : note de section et sous-titres */
+.field-note { border-top: 1px dashed var(--border); padding-top: 0.9rem; }
+.sous-titre-section { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); margin: 1.6rem 0 0.6rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); }
+
+/* Dynamomètre */
+.dynamo { display: grid; gap: 0.6rem; }
+.dynamo-tables { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.dynamo-table { border-collapse: collapse; min-width: 15rem; flex: 1 1 15rem; font-size: 0.88rem; }
+.dynamo-table th, .dynamo-table td { padding: 0.35rem 0.6rem; border: 1px solid var(--border); }
+.dynamo-table thead th { background: var(--primary); color: #fff; font-weight: 600; text-align: center; }
+.dynamo-table tbody th { background: var(--primary-50); font-weight: 600; text-align: center; width: 40%; }
+.dynamo-table td .input { width: 100%; text-align: center; }
+.dynamo-table td .prev { display: block; text-align: center; margin-top: 0.2rem; }
+.dynamo-resultats { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.25rem; font-size: 0.9rem; }
+.dyn-ok { color: var(--success); }
+.dyn-haut { color: var(--success); }
+.dyn-bas { color: var(--warn); }
+
+/* Éditeur de modèles : bibliothèque de sections, réglages du dynamomètre */
+.palette-section { display: flex; align-items: center; gap: 0.25rem; }
+.palette-section .palette-item { flex: 1; cursor: pointer; display: flex; flex-direction: column; gap: 0.1rem; }
+.palette-section .palette-item small { color: var(--muted); font-size: 0.75rem; }
+.props-dynamo { display: grid; gap: 0.6rem; }
+.props-groupe { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.6rem; margin: 0; display: grid; gap: 0.5rem; }
+
+/* Import CSV du dynamomètre */
+.import-dynamo { display: grid; gap: 0.75rem; min-width: 0; }
+.import-fichier { justify-self: start; cursor: pointer; }
+.import-table { max-height: 50vh; overflow: auto; border: 1px solid var(--border); border-radius: 0.5rem; }
+.import-table .input { width: auto; max-width: 18rem; padding: 0.3rem 0.4rem; font-size: 0.85rem; }
+.import-table tr.is-ignore td { opacity: 0.55; }
+.info-import { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; margin: 0 0 1rem; color: var(--success); background: #ebfbee; border-radius: 0.5rem; font-size: 0.9rem; }

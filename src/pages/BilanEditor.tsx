@@ -5,10 +5,12 @@ import { getTemplate } from '../data/templates';
 import { templateDuBilan } from '../data/catalogue';
 import { ItemPicker } from '../components/Items';
 import { Modal } from '../components/Modal';
-import { genererSynthese, isFilled, isVisible, valeurCalculee } from '../lib/synthese';
+import { cleNote, estSaisissable, genererSynthese, isFilled, isVisible, valeurCalculee } from '../lib/synthese';
 import { estSuivable, suiviKey } from '../lib/suivi';
 import { FieldInput } from '../components/FieldInput';
 import { MediasChamp } from '../components/Medias';
+import { ImportDynamo } from '../components/ImportDynamo';
+import { ciblesDuModele } from '../lib/importCsv';
 import type { BilanType, FieldValue } from '../types';
 
 export function BilanEditor() {
@@ -22,6 +24,8 @@ export function BilanEditor() {
   const [active, setActive] = useState(template?.sections[0].id ?? '');
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [ajout, setAjout] = useState(false);
+  const [importCsv, setImportCsv] = useState(false);
+  const [infoImport, setInfoImport] = useState('');
 
   // Bilan précédent du même modèle, pour afficher les valeurs antérieures
   const previous = useMemo(() => {
@@ -49,7 +53,7 @@ export function BilanEditor() {
   const synthese = genererSynthese(bilan, template, patient);
   const sectionFilled = (sid: string) => {
     const s = template.sections.find((x) => x.id === sid)!;
-    const visibles = s.fields.filter((f) => f.type !== 'calcul' && isVisible(f, bilan.values));
+    const visibles = s.fields.filter((f) => estSaisissable(f) && isVisible(f, bilan.values));
     return visibles.length ? visibles.filter((f) => isFilled(bilan.values[f.id])).length / visibles.length : 0;
   };
   const section = template.sections.find((s) => s.id === active) ?? template.sections[0];
@@ -71,6 +75,11 @@ export function BilanEditor() {
           <button className="btn btn-ghost" onClick={() => setAjout(true)}>
             + Ajouter un item
           </button>
+          {ciblesDuModele(template).length > 0 && (
+            <button className="btn btn-ghost" onClick={() => setImportCsv(true)}>
+              Importer un CSV (dynamomètre)
+            </button>
+          )}
           <Link to={`/bilans/${bilan.id}/apercu`} className="btn btn-ghost">
             Aperçu du compte rendu
           </Link>
@@ -171,6 +180,14 @@ export function BilanEditor() {
           ) : (
             <>
               <h2>{section.title}</h2>
+              {infoImport && section.fields.some((f) => f.type === 'dynamo') && (
+                <p className="info-import" role="status">
+                  {infoImport}{' '}
+                  <button type="button" className="btn btn-ghost btn-small" onClick={() => setInfoImport('')}>
+                    OK
+                  </button>
+                </p>
+              )}
               {section.fields
                 .filter((f) => isVisible(f, bilan.values))
                 .map((f) => {
@@ -182,13 +199,27 @@ export function BilanEditor() {
                       value={bilan.values[f.id]}
                       onChange={(v) => setValue(f.id, v)}
                       previous={previous?.values[f.id]}
+                      poids={patient.poids}
                       calcule={f.type === 'calcul' ? valeurCalculee(f, template, bilan.values) : undefined}
                       complement={f.medias ? <MediasChamp patientId={patient.id} bilanId={bilan.id} fieldId={f.id} /> : undefined}
-                      memo={f.type !== 'calcul' && f.type !== 'bodychart' ? { actif: (db.memos[patient.id] ?? []).includes(key), onToggle: () => store.toggleMemo(patient.id, key) } : undefined}
+                      memo={estSaisissable(f) && f.type !== 'bodychart' ? { actif: (db.memos[patient.id] ?? []).includes(key), onToggle: () => store.toggleMemo(patient.id, key) } : undefined}
                       suivi={estSuivable(f) ? { actif: (db.suivis[patient.id] ?? []).includes(key), onToggle: () => store.toggleSuivi(patient.id, key) } : undefined}
                     />
                   );
                 })}
+              <div className="field field-note">
+                <label className="field-label" htmlFor={`note-${section.id}`}>
+                  Note
+                </label>
+                <textarea
+                  id={`note-${section.id}`}
+                  className="input"
+                  rows={3}
+                  placeholder={`Note libre sur « ${section.title} », reprise dans le compte rendu`}
+                  value={typeof bilan.values[cleNote(section.id)] === 'string' ? (bilan.values[cleNote(section.id)] as string) : ''}
+                  onChange={(e) => setValue(cleNote(section.id), e.target.value || null)}
+                />
+              </div>
               <div className="actions between">
                 <button className="btn btn-ghost" disabled={idx <= 0} onClick={() => setActive(template.sections[idx - 1].id)}>
                   ← Précédent
@@ -207,6 +238,22 @@ export function BilanEditor() {
           )}
         </section>
       </div>
+      {importCsv && (
+        <Modal title="Importer des mesures de dynamomètre" onClose={() => setImportCsv(false)}>
+          <ImportDynamo
+            template={template}
+            values={bilan.values}
+            onClose={() => setImportCsv(false)}
+            onImport={(values, remplis) => {
+              store.updateBilan(bilan.id, { values });
+              setImportCsv(false);
+              const cible = template.sections.find((s) => s.fields.some((f) => f.type === 'dynamo'));
+              if (cible) setActive(cible.id);
+              setInfoImport(`${remplis} mesure(s) importée(s) depuis le fichier CSV.`);
+            }}
+          />
+        </Modal>
+      )}
       {ajout && (
         <Modal title="Ajouter un item au bilan" onClose={() => setAjout(false)}>
           <ItemPicker bilanId={bilan.id} ajoutes={bilan.itemsAjoutes ?? []} modele={modele} />

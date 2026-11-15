@@ -52,5 +52,6 @@ export const douleur: SectionDef = {
       options: ['Mécanique', 'Inflammatoire', 'Neuropathique', 'Nocturne', 'Irradiante'],
     },
     { id: 'schema', label: 'Schéma corporel', type: 'bodychart', help: 'Choisissez une sensation, puis dessinez sur le schéma.' },
+    { id: 'autres_douleurs', label: 'Autres douleurs', type: 'textarea', placeholder: 'Douleurs sans lien direct avec le motif : localisation, ancienneté, intensité' },
   ],
 };

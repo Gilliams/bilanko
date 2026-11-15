@@ -5,6 +5,7 @@ import { criteresPresents, estActivites, estTestValeur, formatValue, moyenneActi
 import { ficheDuChamp } from '../data/catalogue';
 import { FicheContenu } from './Items';
 import { Suggestions } from './Suggestions';
+import { DynamoChamp } from './DynamoChamp';
 
 interface Props {
   field: FieldDef;
@@ -19,6 +20,8 @@ interface Props {
   memo?: { actif: boolean; onToggle: () => void };
   /** Contenu affiché sous la saisie (photos et vidéos) */
   complement?: ReactNode;
+  /** Poids du patient (kg), pour les forces rapportées au poids */
+  poids?: number;
 }
 
 const RESULTATS_TEST = ['Négatif', 'Positif'];
@@ -36,10 +39,11 @@ function ChampNombre({ label, value, unit, min, max, onChange }: { label: string
   );
 }
 
-export function FieldInput({ field, value, onChange, previous, suivi, calcule, memo, complement }: Props) {
+export function FieldInput({ field, value, onChange, previous, suivi, calcule, memo, complement, poids }: Props) {
   const id = `f-${field.id}`;
+  if (field.type === 'titre') return <h3 className="sous-titre-section">{field.label}</h3>;
   // Le schéma compare déjà le bilan précédent en transparence.
-  const prevText = previous !== undefined && field.type !== 'bodychart' ? formatValue(field, previous) : '';
+  const prevText = previous !== undefined && field.type !== 'bodychart' && field.type !== 'dynamo' ? formatValue(field, previous) : '';
   const fiche = ficheDuChamp(field);
 
   const control = (() => {
@@ -234,6 +238,8 @@ export function FieldInput({ field, value, onChange, previous, suivi, calcule, m
           </div>
         );
       }
+      case 'dynamo':
+        return <DynamoChamp field={field} value={value} onChange={onChange} poids={poids} previous={previous} />;
       case 'bodychart':
         return <BodyChart value={value} onChange={onChange} previous={previous} />;
       case 'score': {

@@ -19,6 +19,8 @@ const TYPE_LABEL: Record<FieldType, string> = {
   bilateral: 'gauche/droite',
   calcul: 'calcul',
   activites: 'activités',
+  titre: 'sous-titre',
+  dynamo: 'dynamomètre',
 };
 
 export function Modeles() {

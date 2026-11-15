@@ -2,6 +2,8 @@ import { useState, type DragEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { SPECIALITES } from '../data/templates';
 import { rechercherItems, ficheDuChamp } from '../data/catalogue';
+import { BIBLIOTHEQUE_SECTIONS } from '../data/sections-biblio';
+import { ProprietesDynamo } from '../components/ProprietesDynamo';
 import { store, useDB } from '../lib/store';
 import {
   TYPES_CREABLES,
@@ -14,6 +16,8 @@ import {
   deplacerChamp,
   deplacerSection,
   erreurFormule,
+  insererSection,
+  sectionPourBibliotheque,
   estCalculable,
   majChamp,
   majSection,
@@ -22,7 +26,7 @@ import {
   supprimerSection,
   valeursDe,
 } from '../lib/modeles';
-import type { BilanTemplate, FieldDef, FieldType, Specialite } from '../types';
+import type { BilanTemplate, FieldDef, FieldType, SectionDef, Specialite } from '../types';
 
 const TYPE_MIME = 'text/bilanko';
 
@@ -95,6 +99,7 @@ function Proprietes({ modele, champ, onChange }: { modele: BilanTemplate; champ:
       {texte('label', 'Libellé')}
       {texte('reportLabel', 'Libellé de compte rendu')}
       {texte('help', 'Aide à la saisie')}
+      {champ.type === 'titre' && <p className="help">Un sous-titre découpe la section à l’écran ; il n’apparaît pas dans le compte rendu.</p>}
       {(champ.type === 'number' || champ.type === 'bilateral') && (
         <>
           {texte('unit', 'Unité')}
@@ -125,6 +130,7 @@ function Proprietes({ modele, champ, onChange }: { modele: BilanTemplate; champ:
           {texte('alerte', 'Alerte du compte rendu au seuil (facultatif)')}
         </>
       )}
+      {champ.type === 'dynamo' && <ProprietesDynamo champ={champ} onChange={onChange} />}
       {champ.type === 'calcul' && <ProprietesCalcul modele={modele} champ={champ} onChange={onChange} texte={texte} nombre={nombre} />}
       <label className="props-check">
         <input type="checkbox" checked={champ.medias === true} onChange={(e) => onChange({ medias: e.target.checked || undefined })} />
@@ -180,6 +186,7 @@ export function ModeleEditor() {
   const [recherche, setRecherche] = useState('');
   const [sectionActive, setSectionActive] = useState<string | null>(null);
   const [survol, setSurvol] = useState<string | null>(null);
+  const [rechercheSection, setRechercheSection] = useState('');
 
   if (!modele) {
     return (
@@ -196,6 +203,15 @@ export function ModeleEditor() {
   const items = rechercherItems(recherche).filter((i) => !champs(modele).some((f) => ficheDuChamp(f)?.id === i.id));
   const alertes = problemes(modele);
   const utilisations = db.bilans.filter((b) => b.templateId === modele.id).length;
+
+  const normaliser = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  const sectionsDispo = [...db.sectionsBiblio.map((s) => ({ s, perso: true })), ...BIBLIOTHEQUE_SECTIONS.map((s) => ({ s, perso: false }))].filter(({ s }) => normaliser(s.title).includes(normaliser(rechercheSection.trim())));
+  const insererDepuisBiblio = (source: SectionDef) => {
+    const i = modele.sections.findIndex((s) => s.id === cible.id);
+    const { modele: suivant, sectionId } = insererSection(modele, source, i + 1);
+    maj(suivant);
+    setSectionActive(sectionId);
+  };
 
   const inserer = (champ: FieldDef, sectionId: string, index?: number) => {
     maj(ajouterChamp(modele, sectionId, champ, index));
@@ -282,7 +298,28 @@ export function ModeleEditor() {
               </button>
             ))}
           </div>
-          <h3>Bibliothèque</h3>
+          <h3>Sections</h3>
+          <p className="help">Insère une section complète après « {cible.title} ».</p>
+          <input className="input" type="search" placeholder="Rechercher une section" aria-label="Rechercher une section" value={rechercheSection} onChange={(e) => setRechercheSection(e.target.value)} />
+          <div className="palette-liste palette-biblio">
+            {sectionsDispo.map(({ s, perso }) => (
+              <div key={s.id} className="palette-section">
+                <button type="button" className="palette-item" title={s.fields.map((f) => f.label).join(', ')} onClick={() => insererDepuisBiblio(s)}>
+                  {s.title}
+                  <small>
+                    {s.fields.filter((f) => f.type !== 'titre').length} champs{perso ? ' · ma section' : ''}
+                  </small>
+                </button>
+                {perso && (
+                  <button type="button" className="btn-icone" aria-label={`Retirer « ${s.title} » de la bibliothèque`} onClick={() => confirm(`Retirer la section « ${s.title} » de la bibliothèque ? Les modèles qui l’utilisent déjà ne changent pas.`) && store.deleteSectionBiblio(s.id)}>
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            {sectionsDispo.length === 0 && <p className="help">Aucune section ne correspond.</p>}
+          </div>
+          <h3>Bibliothèque de tests</h3>
           <input className="input" type="search" placeholder="Rechercher un test" aria-label="Rechercher dans la bibliothèque" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
           <div className="palette-liste palette-biblio">
             {items.map((i) => (
@@ -299,6 +336,18 @@ export function ModeleEditor() {
             <section key={s.id} className={`card modele-section-edit ${s.id === cible.id ? 'is-cible' : ''}`} onClick={() => setSectionActive(s.id)} onDragOver={(e) => survoler(e, `fin-${s.id}`)} onDragLeave={() => setSurvol(null)} onDrop={(e) => deposer(e, s.id, s.fields.length)}>
               <div className="section-tete">
                 <input className="input section-titre" aria-label="Titre de la section" value={s.title} onChange={(e) => maj(majSection(modele, s.id, { title: e.target.value }))} />
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-small"
+                  title="Réutiliser cette section dans d’autres modèles"
+                  disabled={s.fields.length === 0}
+                  onClick={() => {
+                    store.addSectionBiblio(sectionPourBibliotheque(s));
+                    alert(`« ${s.title} » est enregistrée dans la bibliothèque de sections.`);
+                  }}
+                >
+                  Enregistrer dans la bibliothèque
+                </button>
                 <button type="button" className="btn-icone" aria-label={`Monter la section ${s.title}`} disabled={si === 0} onClick={() => maj(deplacerSection(modele, s.id, -1))}>
                   ↑
                 </button>

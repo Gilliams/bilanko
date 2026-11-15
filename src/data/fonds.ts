@@ -361,7 +361,207 @@ const pieds: Fond = {
   zoneDe: (x, y) => zonePied(y, x >= 260),
 };
 
-export const FONDS: Fond[] = [corps, tronc, tete, mainsPaume, mainsDos, pieds];
+/* ------------------------------------------------------------------ */
+/* Vues de profil : quatre silhouettes par fond                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Une vue de profil. `sens` vaut 1 quand la face antérieure (ou palmaire,
+ * ou les orteils) est tournée vers la droite du dessin.
+ */
+interface VueProfil {
+  cote: 'droit' | 'gauche';
+  face: string;
+  cx: number;
+  sens: 1 | -1;
+}
+
+const LARGEUR_PROFIL = 520;
+const COLONNE = LARGEUR_PROFIL / 4;
+
+/** Quatre vues en ligne : droit vu de dehors, droit vu de dedans, gauche vu de dedans, gauche vu de dehors. */
+function vuesEnLigne(faces: [string, string], decalage = 0): VueProfil[] {
+  const [externe, interne] = faces;
+  const vues: [VueProfil['cote'], string, 1 | -1][] = [
+    ['droit', externe, 1],
+    ['droit', interne, -1],
+    ['gauche', interne, 1],
+    ['gauche', externe, -1],
+  ];
+  return vues.map(([cote, face, sens], i) => ({ cote, face, sens, cx: COLONNE * (i + 0.5) - decalage * sens }));
+}
+
+const vueSous = (vues: VueProfil[], x: number) => vues.reduce((a, b) => (Math.abs(b.cx - x) < Math.abs(a.cx - x) ? b : a));
+
+const placer = (points: Point[], v: VueProfil, haut: number, echelle = 1): Point[] => points.map(([x, y]) => [v.cx + x * v.sens * echelle, haut + y * echelle]);
+
+const reperesProfil = (vues: VueProfil[], y: number, abrege: (v: VueProfil) => string): Repere[] =>
+  vues.map((v, i) => ({ x: COLONNE * (i + 0.5), y, texte: `${v.cote === 'droit' ? 'D' : 'G'} · ${abrege(v)}` }));
+
+const FEMININS = new Set(['épaule', 'main', 'hanche', 'fesse', 'jambe', 'cheville', 'cuisse']);
+const accorder = (segment: string, cote: VueProfil['cote']) => `${segment} ${FEMININS.has(segment) && cote === 'droit' ? 'droite' : cote}`;
+
+/* Membre supérieur, bras le long du corps, de l'acromion au bout des doigts. */
+const BRAS: Point[] = [
+  [-8, 0], [10, 2], [24, 16], [29, 40], [25, 70], [21, 88], [25, 120], [24, 160], [17, 194], [19, 212], [22, 236],
+  [18, 280], [12, 318], [9, 336], [11, 348], [19, 362], [21, 378], [14, 388], [12, 410], [10, 432], [3, 450],
+  [-5, 450], [-9, 436], [-12, 410], [-13, 380], [-12, 356], [-9, 338], [-14, 310], [-22, 262], [-27, 226],
+  [-29, 212], [-25, 196], [-31, 160], [-31, 110], [-33, 66], [-28, 28], [-20, 8],
+];
+const HAUT_BRAS = 16;
+const ECHELLE_BRAS = 1.05;
+const vuesBras = vuesEnLigne(['face externe', 'face interne']);
+
+const brasProfil: Fond = {
+  id: 'bras_profil',
+  label: 'Bras, profil',
+  largeur: LARGEUR_PROFIL,
+  hauteur: 520,
+  formes: vuesBras.map((v) => ({ d: lisser(placer(BRAS, v, HAUT_BRAS, ECHELLE_BRAS), true) })),
+  details: vuesBras.flatMap((v) => [
+    lisser(placer([[22, 82], [8, 70], [-6, 74]], v, HAUT_BRAS, ECHELLE_BRAS)),
+    lisser(placer([[18, 196], [10, 202]], v, HAUT_BRAS, ECHELLE_BRAS)),
+    lisser(placer([[9, 338], [0, 341], [-9, 338]], v, HAUT_BRAS, ECHELLE_BRAS)),
+    lisser(placer([[14, 388], [6, 376], [4, 360]], v, HAUT_BRAS, ECHELLE_BRAS)),
+  ]),
+  reperes: reperesProfil(vuesBras, 512, (v) => (v.face === 'face externe' ? 'externe' : 'interne')),
+  zoneDe: (x, y) => {
+    const v = vueSous(vuesBras, x);
+    const h = (y - HAUT_BRAS) / ECHELLE_BRAS;
+    if (h < -8 || h > 465 || Math.abs(x - v.cx) > 50) return null;
+    const segment = h < 85 ? 'épaule' : h < 192 ? 'bras' : h < 226 ? 'coude' : h < 328 ? 'avant-bras' : h < 350 ? 'poignet' : 'main';
+    return `${accorder(segment, v.cote)}, ${v.face}`;
+  },
+};
+
+/* Membre inférieur, de la crête iliaque au pied, pointe du pied vers l'avant. */
+const JAMBE: Point[] = [
+  [-34, 0], [8, -2], [30, 10], [35, 42], [37, 92], [33, 150], [28, 188], [33, 204], [27, 226], [22, 262], [18, 322],
+  [14, 380], [15, 410], [25, 424], [50, 438], [72, 450], [79, 460], [71, 466], [20, 466], [-12, 466], [-23, 456],
+  [-22, 430], [-16, 402], [-18, 362], [-28, 302], [-31, 262], [-24, 226], [-28, 190], [-34, 130], [-41, 72], [-45, 32], [-39, 8],
+];
+const HAUT_JAMBE = 14;
+const vuesJambes = vuesEnLigne(['face externe', 'face interne'], 17);
+
+const jambesProfil: Fond = {
+  id: 'jambes_profil',
+  label: 'Jambes, profil',
+  largeur: LARGEUR_PROFIL,
+  hauteur: 510,
+  formes: vuesJambes.map((v) => ({ d: lisser(placer(JAMBE, v, HAUT_JAMBE), true) })),
+  details: vuesJambes.flatMap((v) => [
+    lisser(placer([[30, 190], [24, 206], [28, 222]], v, HAUT_JAMBE)),
+    `M${placer([[0, 412]], v, HAUT_JAMBE)[0].join(' ')}m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0`,
+    lisser(placer([[-20, 212], [-8, 206], [4, 212]], v, HAUT_JAMBE)),
+  ]),
+  reperes: reperesProfil(vuesJambes, 502, (v) => (v.face === 'face externe' ? 'externe' : 'interne')),
+  zoneDe: (x, y) => {
+    const v = vueSous(vuesJambes, x);
+    const h = y - HAUT_JAMBE;
+    const avant = (x - v.cx) * v.sens;
+    if (h < -8 || h > 475 || avant < -52 || avant > 86) return null;
+    let segment: string;
+    if (h < 46) segment = avant < -8 ? 'fesse' : 'hanche';
+    else if (h < 186) segment = 'cuisse';
+    else if (h < 236) segment = avant < -10 ? 'creux poplité' : 'genou';
+    else if (h < 398) segment = avant < -4 ? 'mollet' : 'jambe';
+    else if (h < 430 && avant < 26) segment = 'cheville';
+    else segment = avant < -4 ? 'talon' : 'pied';
+    return `${segment === 'creux poplité' ? `creux poplité ${v.cote}` : accorder(segment, v.cote)}, ${v.face}`;
+  },
+};
+
+/* Main et poignet de profil, doigts vers le haut ; la face palmaire est du côté de `sens`. */
+const MAIN_RADIALE: Point[] = [
+  [-4, 0], [5, 0], [10, 8], [13, 32], [16, 62], [19, 94], [30, 96], [46, 78], [56, 76], [59, 88], [50, 112], [40, 138],
+  [32, 164], [24, 190], [20, 214], [22, 258], [24, 300], [-22, 300], [-20, 258], [-17, 216], [-21, 190], [-20, 158],
+  [-17, 120], [-14, 98], [-12, 70], [-11, 40], [-10, 12],
+];
+const MAIN_ULNAIRE: Point[] = [
+  [-4, 0], [5, 0], [10, 8], [12, 32], [14, 62], [17, 96], [22, 124], [24, 152], [21, 186], [20, 214], [22, 258],
+  [24, 300], [-22, 300], [-20, 258], [-17, 216], [-21, 190], [-20, 158], [-17, 120], [-14, 98], [-12, 70], [-11, 40], [-10, 12],
+];
+const HAUT_MAIN_PROFIL = 22;
+const ECHELLE_MAIN = 1.3;
+const vuesMains = vuesEnLigne(['bord radial', 'bord ulnaire']);
+const formeMain = (v: VueProfil) => (v.face === 'bord radial' ? MAIN_RADIALE : MAIN_ULNAIRE);
+
+const mainsProfil: Fond = {
+  id: 'mains_profil',
+  label: 'Mains et poignets, profil',
+  largeur: LARGEUR_PROFIL,
+  hauteur: 440,
+  formes: vuesMains.map((v) => ({ d: lisser(placer(formeMain(v), v, HAUT_MAIN_PROFIL, ECHELLE_MAIN), true) })),
+  details: vuesMains.flatMap((v) => [
+    lisser(placer([[-10, 40], [-2, 44]], v, HAUT_MAIN_PROFIL, ECHELLE_MAIN)),
+    lisser(placer([[-14, 70], [-4, 74]], v, HAUT_MAIN_PROFIL, ECHELLE_MAIN)),
+    lisser(placer([[24, 204], [8, 200]], v, HAUT_MAIN_PROFIL, ECHELLE_MAIN)),
+    `M${placer([[-18, 206]], v, HAUT_MAIN_PROFIL, ECHELLE_MAIN)[0].join(' ')}m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0`,
+  ]),
+  reperes: reperesProfil(vuesMains, 432, (v) => (v.face === 'bord radial' ? 'radial' : 'ulnaire')),
+  zoneDe: (x, y) => {
+    const v = vueSous(vuesMains, x);
+    const h = (y - HAUT_MAIN_PROFIL) / ECHELLE_MAIN;
+    const palmaire = ((x - v.cx) * v.sens) / ECHELLE_MAIN;
+    if (h < -8 || h > 308 || palmaire < -32 || palmaire > 66) return null;
+    const nom = `main ${v.cote === 'droit' ? 'droite' : 'gauche'}, ${v.face}`;
+    if (v.face === 'bord radial' && palmaire > 22 && h > 66 && h < 150) return `pouce, ${nom}`;
+    if (h < 98) return `doigts, ${nom}`;
+    if (h < 196) return `${palmaire >= 0 ? 'paume' : 'dos de la main'}, ${nom}`;
+    if (h < 226) return `poignet, ${nom}`;
+    return `avant-bras, ${nom}`;
+  },
+};
+
+/* Pied et cheville de profil, orteils du côté de `sens`, plante en y = 0. */
+const PIED_EXTERNE: Point[] = [
+  [-22, -170], [18, -170], [16, -112], [14, -72], [24, -54], [50, -44], [90, -30], [120, -20], [140, -12], [151, -5],
+  [147, 2], [120, 2], [70, 2], [20, 2], [-20, 2], [-34, -8], [-36, -30], [-28, -60], [-22, -112],
+];
+const PIED_INTERNE: Point[] = [
+  [-22, -170], [18, -170], [16, -112], [14, -72], [24, -56], [50, -48], [90, -34], [120, -22], [140, -14], [151, -6],
+  [147, 2], [118, 2], [92, -2], [60, -12], [26, -4], [-20, 2], [-34, -8], [-36, -30], [-28, -60], [-22, -112],
+];
+const ECHELLE_PIED = 1.1;
+/** Origine (talon au sol) de chaque vue ; ligne du haut : pied droit, ligne du bas : pied gauche. */
+const vuesPieds: (VueProfil & { sol: number })[] = [
+  { cote: 'droit', face: 'face externe', sens: 1, sol: 200 },
+  { cote: 'droit', face: 'face interne', sens: -1, sol: 200 },
+  { cote: 'gauche', face: 'face interne', sens: 1, sol: 420 },
+  { cote: 'gauche', face: 'face externe', sens: -1, sol: 420 },
+].map((v, i) => ({ ...v, sens: v.sens as 1 | -1, cote: v.cote as VueProfil['cote'], cx: (i % 2 === 0 ? 130 : 390) - 57 * ECHELLE_PIED * v.sens }));
+const formePied = (v: VueProfil) => (v.face === 'face externe' ? PIED_EXTERNE : PIED_INTERNE);
+
+const piedsProfil: Fond = {
+  id: 'pieds_profil',
+  label: 'Pieds et chevilles, profil',
+  largeur: LARGEUR_PROFIL,
+  hauteur: 450,
+  formes: vuesPieds.map((v) => ({ d: lisser(placer(formePied(v), v, v.sol, ECHELLE_PIED), true) })),
+  details: vuesPieds.flatMap((v) => [
+    `M${placer([[-1, v.face === 'face externe' ? -54 : -62]], v, v.sol, ECHELLE_PIED)[0].join(' ')}m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0`,
+    lisser(placer([[118, -18], [122, -4]], v, v.sol, ECHELLE_PIED)),
+  ]),
+  reperes: vuesPieds.map((v, i) => ({ x: i % 2 === 0 ? 130 : 390, y: v.sol + 24, texte: `Pied ${v.cote}, ${v.face}` })),
+  zoneDe: (x, y) => {
+    const v = vuesPieds.filter((p) => Math.abs(y - p.sol + 85) < 110).reduce((a, b) => (Math.abs(b.cx - x) < Math.abs(a.cx - x) ? b : a), vuesPieds[y < 210 ? 0 : 2]);
+    const h = (v.sol - y) / ECHELLE_PIED;
+    const avant = ((x - v.cx) * v.sens) / ECHELLE_PIED;
+    if (h < -8 || h > 178 || avant < -44 || avant > 158) return null;
+    const nom = `pied ${v.cote}, ${v.face}`;
+    if (h > 90) return avant < -10 ? `tendon calcanéen, ${nom}` : `jambe, ${nom}`;
+    if (h > 40 && avant < 26) {
+      if (avant < -18) return `tendon calcanéen, ${nom}`;
+      return `${v.face === 'face externe' ? 'malléole externe' : 'malléole interne'} ou cheville, ${nom}`;
+    }
+    if (avant < 12) return `talon, ${nom}`;
+    if (avant < 70) return `${v.face === 'face interne' ? 'arche interne' : 'bord externe'}, ${nom}`;
+    if (avant < 116) return `avant-pied, ${nom}`;
+    return `orteils, ${nom}`;
+  },
+};
+
+export const FONDS: Fond[] = [corps, tronc, tete, mainsPaume, mainsDos, pieds, brasProfil, jambesProfil, mainsProfil, piedsProfil];
 
 export const getFond = (id: string) => FONDS.find((f) => f.id === id) ?? corps;
 

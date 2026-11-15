@@ -100,6 +100,7 @@ export function PatientDetail() {
             <p className="muted">
               {formatAge(p.dateNaissance)} · né(e) le {formatDate(p.dateNaissance)}
               {p.profession ? ` · ${p.profession}` : ''}
+              {p.archiveLe && <span className="badge-archive">Archivé le {formatDate(p.archiveLe)}</span>}
             </p>
           </div>
         </div>
@@ -134,6 +135,9 @@ export function PatientDetail() {
               </div>
             );
           })}
+          <button className="btn btn-ghost" onClick={() => store.archiverPatient(p.id, !p.archiveLe)}>
+            {p.archiveLe ? 'Désarchiver le dossier' : 'Archiver le dossier'}
+          </button>
           <button
             className="btn btn-danger-ghost"
             onClick={() => {

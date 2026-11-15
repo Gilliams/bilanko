@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { estDessin } from './dessin';
 import { supprimerMedias } from './medias';
-import type { Bilan, BilanTemplate, BilanType, Cabinet, FieldValue, Patient, Seance } from '../types';
+import type { Bilan, BilanTemplate, BilanType, Cabinet, FieldValue, Patient, SectionDef, Seance } from '../types';
 
 /**
  * Stockage local (localStorage) — volontairement simple pour l'exercice.
@@ -23,6 +23,8 @@ export interface DB {
   modelesFavoris: string[];
   /** Modèles créés par l'utilisateur */
   modeles: BilanTemplate[];
+  /** Sections enregistrées par l'utilisateur, réutilisables dans tous les modèles */
+  sectionsBiblio: SectionDef[];
   cabinet: Cabinet;
 }
 
@@ -30,7 +32,7 @@ const KEY = 'bilanko:db';
 
 /** Un nouveau bilan reprend les valeurs, sauf les schémas : ils restent visibles en transparence. */
 const valeursReprises = (values: Record<string, FieldValue>) => Object.fromEntries(Object.entries(structuredClone(values)).filter(([, v]) => !estDessin(v)));
-const empty = (): DB => ({ version: 1, patients: [], bilans: [], seances: [], suivis: {}, favoris: [], memos: {}, modelesFavoris: [], modeles: [], cabinet: {} });
+const empty = (): DB => ({ version: 1, patients: [], bilans: [], seances: [], suivis: {}, favoris: [], memos: {}, modelesFavoris: [], modeles: [], sectionsBiblio: [], cabinet: {} });
 
 export interface Storage {
   getItem(k: string): string | null;
@@ -80,6 +82,10 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
     },
     updatePatient(id: string, patch: Partial<Patient>) {
       commit({ ...db, patients: db.patients.map((p) => (p.id === id ? { ...p, ...patch, id } : p)) });
+    },
+    /** Archive ou désarchive un dossier : rien n'est supprimé. */
+    archiverPatient(id: string, archive: boolean) {
+      commit({ ...db, patients: db.patients.map((p) => (p.id === id ? { ...p, archiveLe: archive ? now() : undefined } : p)) });
     },
     deletePatient(id: string) {
       void supprimerMedias({ patientId: id }).catch(() => undefined);
@@ -156,6 +162,13 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       return true;
     },
 
+    addSectionBiblio(section: SectionDef) {
+      commit({ ...db, sectionsBiblio: [...db.sectionsBiblio, section] });
+    },
+    deleteSectionBiblio(id: string) {
+      commit({ ...db, sectionsBiblio: db.sectionsBiblio.filter((s) => s.id !== id) });
+    },
+
     toggleFavori(itemId: string) {
       const favoris = db.favoris.includes(itemId) ? db.favoris.filter((i) => i !== itemId) : [...db.favoris, itemId];
       commit({ ...db, favoris });
@@ -201,9 +214,9 @@ export function createStore(storage: Storage = typeof localStorage !== 'undefine
       commit({ ...db, seances: db.seances.filter((s) => s.id !== id) });
     },
 
-    /** Remplace les données de démonstration en gardant les informations du cabinet. */
+    /** Remplace les données de démonstration en gardant les informations du cabinet et la bibliothèque de sections. */
     replaceAll(next: DB) {
-      commit({ ...next, cabinet: db.cabinet });
+      commit({ ...next, cabinet: db.cabinet, sectionsBiblio: db.sectionsBiblio });
     },
   };
 }

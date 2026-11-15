@@ -39,8 +39,8 @@ export function Dashboard() {
         <>
           <section className="stats">
             <div className="stat">
-              <span className="stat-n">{db.patients.length}</span>
-              <span>patients</span>
+              <span className="stat-n">{db.patients.filter((p) => !p.archiveLe).length}</span>
+              <span>patients actifs</span>
             </div>
             <div className="stat">
               <span className="stat-n">{db.bilans.filter((b) => b.date >= monthAgo).length}</span>

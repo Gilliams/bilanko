@@ -30,6 +30,8 @@ export interface Patient {
   datePrescription?: string; // ISO yyyy-mm-dd
   seancesPrescrites?: number;
   motifPrescription?: string;
+  /** Date d'archivage (ISO) : le dossier sort de la liste courante sans être supprimé. */
+  archiveLe?: string;
   createdAt: string;
 }
 
@@ -59,7 +61,9 @@ export type FieldType =
   | 'criteres' // liste de critères Oui / Non, avec un seuil éventuel
   | 'bilateral' // mesure à gauche et à droite
   | 'calcul' // valeur calculée à partir d'autres champs, non saisie
-  | 'activites'; // activités citées par le patient, cotées de 0 à 10
+  | 'activites' // activités citées par le patient, cotées de 0 à 10
+  | 'titre' // sous-titre dans une section, sans saisie
+  | 'dynamo'; // dynamomètre : force à droite et à gauche d'un ou deux groupes musculaires
 
 export interface ScoreItem {
   id: string;
@@ -120,6 +124,25 @@ export interface FieldDef {
   format?: string;
   /** Pour 'number' et 'calcul' : interprétation selon la valeur */
   plages?: ScorePlage[];
+  /** Pour type 'dynamo' : groupes musculaires testés dans cette position */
+  dynamo?: DynamoDef;
+}
+
+/** Groupe musculaire testé au dynamomètre ; la norme est en N/kg. */
+export interface GroupeDynamo {
+  id: string;
+  label: string;
+  normeMin?: number;
+  normeMax?: number;
+}
+
+export interface DynamoDef {
+  /** Un ou deux groupes (agoniste et antagoniste) */
+  groupes: GroupeDynamo[];
+  /** Ratio du premier groupe sur le second, calculé de chaque côté */
+  ratio?: { label: string; normeMin?: number; normeMax?: number };
+  /** Écart entre les côtés à partir duquel on parle de déficit (défaut : 10 %) */
+  seuilDeficit?: number;
 }
 
 /** Valeur d'un champ 'test'. */

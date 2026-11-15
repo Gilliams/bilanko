@@ -12,11 +12,12 @@ export interface Sensation {
 
 export const SENSATIONS: Sensation[] = [
   { id: 'vive', label: 'Douleur vive', couleur: '#e03131', cotable: true },
-  { id: 'sourde', label: 'Douleur sourde', couleur: '#f76707', motif: [3, 1.6], cotable: true },
+  { id: 'sourde', label: 'Douleur sourde, difficile à identifier', couleur: '#f76707', motif: [3, 1.6], cotable: true },
   { id: 'brulure', label: 'Brûlure', couleur: '#c2255c', motif: [1, 1.8, 3, 1.8], cotable: true },
   { id: 'fourmillements', label: 'Fourmillements', couleur: '#2b8a3e', motif: [0.1, 1.9], cotable: true },
   { id: 'engourdissement', label: 'Engourdissement', couleur: '#1971c2', motif: [1.6, 1.6], cotable: true },
   { id: 'raideur', label: 'Raideur', couleur: '#7048e8', motif: [5, 1.6, 1, 1.6], cotable: true },
+  { id: 'autre', label: 'Autre douleur', couleur: '#0c8599', motif: [0.1, 1.6, 3, 1.6], cotable: true },
   { id: 'cicatrice', label: 'Cicatrice', couleur: '#343a40', cotable: false },
 ];
 

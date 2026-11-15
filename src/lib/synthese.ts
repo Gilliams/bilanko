@@ -3,6 +3,7 @@ import { age, formatDate, nomBilan } from './store';
 import { evaluer, type Contexte } from './formule';
 import { estDessin, lireDessin, texteDessin } from './dessin';
 import { ficheDuChamp } from '../data/catalogue';
+import { texteDynamo } from './dynamo';
 
 export const estTestValeur = (v: FieldValue | undefined): v is TestValeur => Boolean(v) && typeof v === 'object' && !Array.isArray(v) && 'resultat' in (v as object);
 
@@ -106,10 +107,15 @@ export function scoreResultats(field: FieldDef, v: FieldValue | undefined): stri
   });
 }
 
-/** Formate une valeur de champ en texte lisible. */
-export function formatValue(field: FieldDef, v: FieldValue | undefined): string {
+/** Champs sans saisie (sous-titres) : ni comptés dans la complétude, ni repris dans le compte rendu. */
+export const estSaisissable = (f: FieldDef) => f.type !== 'titre' && f.type !== 'calcul';
+
+/** Formate une valeur de champ en texte lisible. `poids` (kg) sert aux mesures rapportées au poids. */
+export function formatValue(field: FieldDef, v: FieldValue | undefined, poids?: number): string {
   if (!isFilled(v)) return '';
   switch (field.type) {
+    case 'dynamo':
+      return texteDynamo(field, v, poids);
     case 'boolean':
       return v ? 'oui' : 'non';
     case 'eva':
@@ -158,6 +164,9 @@ export function formatValue(field: FieldDef, v: FieldValue | undefined): string 
   }
 }
 
+/** Clé de la note libre d'une section dans `bilan.values`. */
+export const cleNote = (sectionId: string) => `note__${sectionId}`;
+
 export interface SyntheseSection {
   title: string;
   lines: { label: string; value: string; long: boolean; fieldId: string }[];
@@ -184,7 +193,7 @@ export function genererSynthese(bilan: Bilan, template: BilanTemplate, patient: 
   for (const s of template.sections) {
     const lines: SyntheseSection['lines'] = [];
     for (const f of s.fields) {
-      if (f.inSynthese === false || !isVisible(f, bilan.values)) continue;
+      if (f.type === 'titre' || f.inSynthese === false || !isVisible(f, bilan.values)) continue;
       if (f.type === 'calcul') {
         const r = valeurCalculee(f, template, bilan.values);
         if (r !== null) lines.push({ label: f.reportLabel ?? f.label, value: formatValue(f, r), long: false, fieldId: f.id });
@@ -198,8 +207,10 @@ export function genererSynthese(bilan: Bilan, template: BilanTemplate, patient: 
       const v = bilan.values[f.id];
       if (!isFilled(v)) continue;
       filled++;
-      lines.push({ label: f.reportLabel ?? f.label, value: formatValue(f, v), long: f.type === 'textarea' || f.type === 'bodychart' || f.type === 'activites', fieldId: f.id });
+      lines.push({ label: f.reportLabel ?? f.label, value: formatValue(f, v, patient.poids), long: f.type === 'textarea' || f.type === 'bodychart' || f.type === 'activites' || f.type === 'dynamo', fieldId: f.id });
     }
+    const note = bilan.values[cleNote(s.id)];
+    if (typeof note === 'string' && note.trim()) lines.push({ label: 'Note', value: note.trim(), long: true, fieldId: cleNote(s.id) });
     if (lines.length) sections.push({ title: s.title, lines });
   }
 
